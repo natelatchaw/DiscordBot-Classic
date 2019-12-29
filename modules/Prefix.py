@@ -4,7 +4,8 @@ import configparser
 class Prefix():
     def __init__(self, args):
         self.name = 'Prefix'
-        self.args = args
+        self.description = 'Changes the bot\'s prefix'
+        self.syntax = ['prefix *new prefix*']
 
     async def run(self):
         print('<%s> command invoked by <%s>' % (self.name, self.message.author))

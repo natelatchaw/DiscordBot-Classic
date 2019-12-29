@@ -1,8 +1,9 @@
 class Hello():
     def __init__(self, args):
         self.name = 'Hello'
-        self.text = 'hello world'
+        self.description = 'Posts \'hello world\' to the channel'
+        self.syntax = ['hello']
 
     async def run(self):
         print('<%s> command invoked by <%s>' % (self.name, self.message.author))
-        return self.text
+        return 'hello world'
