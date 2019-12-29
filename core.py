@@ -161,30 +161,34 @@ async def on_message(message):
         # remove prefix from text and split to list
         args = message.content[len(prefix):].split()
         # get first list element (the command)
-        command = args.pop(0)
+        command_name = args.pop(0)
 
         moduleExecutionDelay = Delay('Module execution time')
         try:
             moduleFolder = configuration.getKeyValue('MODULES', 'folder')
         except ValueError as valueError:
-            print('Configuration file is missing values. Exiting...')
+            print('Configuration file is missing the module folder value. Exiting...')
             exit()
 
         try:
             # get module matching the string in command variable
-            module = import_module('%s.%s' % (moduleFolder, command.title()))
+            module = import_module('%s.%s' % (moduleFolder, command_name.title()))
             # get class with same name as module from the module
-            command = getattr(module, command.title())
+            command = getattr(module, command_name.title())
             # instantiate the class
-            command = command(args)
+            command_instance = command(args)
             # set instance attributes
-            command.message = message
-            # run the instance's run method and send obtained data
-            await message.channel.send(await command.run())
+            command_instance.message = message
+            command_instance.configuration = configuration
+            command_instance.prefix = prefix
+            # run the instance's run method
+            returned_data = await command_instance.run()
+            if returned_data is not None:
+                await message.channel.send(returned_data)
         except ModuleNotFoundError as moduleNotFoundError:
-            await message.channel.send('Command not found: <%s>' % command)
+            await message.channel.send('Command not found: <%s>' % command_name.title())
         except AttributeError as attributeError:
-            print('No module named <%s>' % command)
+            print('Attribute error for module <%s>: %s' % (command_name.title(), attributeError))
 
         moduleExecutionDelay.print()
 
