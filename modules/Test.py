@@ -5,5 +5,5 @@ class Test():
         self.syntax = ['test']
 
     async def run(self):
-        print('<%s> command invoked by <%s>' % (self.name, self.message.author))
+        print(f'{self.name} command invoked by {self.message.author}')
         return 'Bot is online'

@@ -8,5 +8,5 @@ class Exit():
         self.syntax = ['exit']
 
     async def run(self):
-        print('[%16s]Shutting down...' % os.path.basename(__file__))
+        print(f'{os.path.basename(__file__):16}Shutting down...')
         return 'cy@'

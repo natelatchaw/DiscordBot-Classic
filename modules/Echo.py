@@ -9,5 +9,5 @@ class Echo():
         #print('<%s> command invoked by <%s>' % (self.name, self.message.author))
         string = ''
         for arg in self.args:
-            string = '%s %s' % (string, arg)
+            string = f'{string} {arg}'
         return string

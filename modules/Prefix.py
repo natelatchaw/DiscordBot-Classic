@@ -8,7 +8,7 @@ class Prefix():
         self.syntax = ['prefix *new prefix*']
 
     async def run(self):
-        print('<%s> command invoked by <%s>' % (self.name, self.message.author))
+        print(f'{self.name} command invoked by {self.message.author}')
 
         if len(self.args) == 0:
             return 'no arguments provided'
@@ -20,4 +20,4 @@ class Prefix():
         with open(self.file, 'w') as configFile:
             self.config.write(configFile)
 
-        return "prefix set to: `%s`" % self.args[0]
+        return f'prefix set to: {self.args[0]}'
