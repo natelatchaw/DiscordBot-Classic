@@ -101,16 +101,7 @@ class Configuration():
         with open(self.file, 'w') as configFile:
             self.config.write(configFile)
 
-class Delay():
-    def __init__(self, name):
-        self.name = name
-        self.start = time.time()
-
-    def print(self):
-        self.end = time.time()
-        self.delta = ((self.end - self.start) * 1000)
-        print('[%14.2fus] %s' % (self.delta, self.name))
-
+# initialize configuration instance
 configuration = Configuration()
 
 if configuration.getDevelopmentMode():
@@ -126,34 +117,29 @@ client = core.client
 
 @client.event
 async def on_ready():
-    print('Logged on as <%s>: using %s token' % (client.user, core.mode))
-    print('Dev Mode active: %s' % configuration.getDevelopmentMode())
-    print('Logging enabled: %s' % configuration.getLoggingMode())
-    print(os.getcwd())
+    print(f'Logged on as {client.user}: using {core.mode} token')
+    print(f'Dev mode active: {configuration.getDevelopmentMode()}')
+    print(f'Logging enabled: {configuration.getLoggingMode()}')
+    print(f'CWD: {os.getcwd()}')
     guilds = []
     for guild in core.client.guilds:
         guilds.append(guild.name)
-    print('Guilds: [%s]' % (', '.join(guilds)))
+    guilds_string = (', '.join(guilds))
+    print(f'Guilds: [{guilds_string}]')
     print('\n')
-    # end counting delay for bot initialization and output to console
-    initializationDelay.print()
 
 @client.event
 async def on_message(message):
     # log message
-    print('<%16s> %s' % (str(message.author), str(message.clean_content)))
+    print(f'{str(message.author):16}{str(message.clean_content)}')
 
     # if the message's author is the bot
     if message.author == client.user:
         return
 
-    # start counting delay for reading configuration file
-    configReadDelay = Delay('Configuration file read time')
     # module launcher
     # reload config file
     configuration.reload()
-    # end counting delay for reading configuration file and output to console
-    configReadDelay.print()
     # get prefix from config file
     prefix = configuration.getKeyValue('DEFAULT', 'prefix')
     # check if the first [len(core.prefix)] characters of the message begin with the prefix
@@ -163,7 +149,6 @@ async def on_message(message):
         # get first list element (the command)
         command_name = args.pop(0)
 
-        moduleExecutionDelay = Delay('Module execution time')
         try:
             moduleFolder = configuration.getKeyValue('MODULES', 'folder')
         except ValueError as valueError:
@@ -172,7 +157,7 @@ async def on_message(message):
 
         try:
             # get module matching the string in command variable
-            module = import_module('%s.%s' % (moduleFolder, command_name.title()))
+            module = import_module(f'{moduleFolder}.{command_name.title()}')
             # get class with same name as module from the module
             command = getattr(module, command_name.title())
             # instantiate the class
@@ -186,17 +171,12 @@ async def on_message(message):
             if returned_data is not None:
                 await message.channel.send(returned_data)
         except ModuleNotFoundError as moduleNotFoundError:
-            await message.channel.send('Command not found: <%s>' % command_name.title())
+            await message.channel.send(f'Command not found: {command_name.title()}')
         except AttributeError as attributeError:
-            print('Attribute error for module <%s>: %s' % (command_name.title(), attributeError))
-
-        moduleExecutionDelay.print()
-
+            print(f'Attribute error for module {command_name.title()}: {attributeError}')
 
     # message logger; runs only if message does not start with prefix
     elif configuration.getLoggingMode():
-        # start counting delay for logging code
-        loggingDelay = Delay('Message logging time')
         try:
             # get the folder and module names from 'config.ini'
             loggingFolder = configuration.getKeyValue('LOGGING', 'folder')
@@ -207,7 +187,7 @@ async def on_message(message):
 
         try:
             # get logging module
-            module = import_module('%s.%s' % (loggingFolder, loggingModule))
+            module = import_module(f'{loggingFolder}.{loggingModule}')
             # get logging class
             logger = getattr(module, loggingModule)
             logger = logger()
@@ -215,15 +195,11 @@ async def on_message(message):
             logger.loggingFolder = loggingFolder
             await logger.run()
         except ModuleNotFoundError as moduleNotFoundError:
-            print('Logging module <%s> improperly installed' % loggingModule)
+            print(f'Logging module {loggingModule} improperly installed')
             print(moduleNotFoundError)
-        # end counting delay for logging code and output to console
-        loggingDelay.print()
 
-# start counting delay for bot initialization
-initializationDelay = Delay('Initialization time')
 try:
     client.run(core.token)
 except discord.errors.LoginFailure as loginFailure:
-    print('Invalid Token: %s' % loginFailure)
+    print(f'Invalid Token: {loginFailure}')
     exit()
