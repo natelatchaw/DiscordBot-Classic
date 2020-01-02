@@ -35,7 +35,7 @@ class Help():
                     # convert syntax list to string and add prefix
                     syntax = ''
                     for example in command_instance.syntax:
-                        syntax = syntax + '%s%s\n' % (self.prefix, example)
+                        syntax = syntax + f'{self.prefix}{example}\n'
 
                     # create embed object and populate with command data
                     embed = discord.Embed()
@@ -47,7 +47,7 @@ class Help():
                     await self.message.channel.send(embed = embed)
 
                 except ValueError as valueError:
-                    await self.message.channel.send("Could not find a command named **%s**" % arg)
+                    await self.message.channel.send(f'Could not find a command named **{arg}**')
 
         else:
             # initialize command_instances list
@@ -61,18 +61,18 @@ class Help():
             # initialize embed object
             embed = discord.Embed()
             embed.title = 'Available commands'
-            embed.description = 'For more information about a command, use **%shelp <command name>**' % self.prefix
+            embed.description = f'For more information about a command, use **{self.prefix}help <command name>**'
             for command_instance in command_instances:
-                embed.add_field(name = '**%s%s**' % (self.prefix, command_instance.name), value = command_instance.description, inline = False)
+                embed.add_field(name = f'**{self.prefix}{command_instance.name}**', value = command_instance.description, inline = False)
             # send embed object
             await self.message.channel.send(embed = embed)
 
     async def get_command_instance(self, command_name):
         try:
-            module = import_module('%s.%s' % (self.moduleFolder, command_name.title()))
+            module = import_module(f'{self.moduleFolder}.{command_name.title()}')
             # get the module's class object
             command = getattr(module, command_name.title())
-            # instantiate the class
+            # instantiate the class with a blank arg
             instance = command('')
             return instance
         except Exception as exception:
@@ -82,7 +82,7 @@ class Help():
         # initialize command list
         commands = []
         # list all items in modules directory
-        directory_contents = os.listdir(os.getcwd() + '/' + self.moduleFolder)
+        directory_contents = os.listdir(f'{os.getcwd()}/{self.moduleFolder}')
         # for each item in the modules directory
         for item in directory_contents:
             # get the item's name
