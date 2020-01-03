@@ -11,12 +11,12 @@ class Help():
         self.args = args
 
     async def run(self):
-
+        output = self.console.output
         try:
             # get config file data here
             self.moduleFolder = self.configuration.getKeyValue('MODULES', 'folder')
         except ValueError as valueError:
-            print('Configuration file is missing module folder data.')
+            output('Configuration file is missing module folder data.')
             await self.message.channel.send('A configuration error occurred. Ask the bot owner to check their console.')
             return
 

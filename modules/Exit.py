@@ -8,5 +8,5 @@ class Exit():
         self.syntax = ['exit']
 
     async def run(self):
-        print(f'{os.path.basename(__file__):16}Shutting down...')
+        print(f'{os.path.basename(__file__):{self.configuration.getConsoleSpacing()}}Shutting down...')
         return 'cy@'
