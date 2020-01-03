@@ -160,7 +160,7 @@ async def on_ready():
 async def on_typing(channel, user, time):
     pre = configuration.getKeyValue('TYPING', 'pre')
     post = configuration.getKeyValue('TYPING', 'post')
-    if random.random() < 10.01:
+    if random.random() < 0.01:
         await channel.send(f'{pre} {user.display_name} {post}')
 
 @client.event
@@ -199,6 +199,7 @@ async def on_message(message):
             # instantiate the class
             command_instance = command(args)
             # set instance attributes
+            command_instance.client = client
             command_instance.message = message
             command_instance.prefix = prefix
             command_instance.configuration = configuration
