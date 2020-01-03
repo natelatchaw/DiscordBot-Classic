@@ -4,6 +4,7 @@ import time
 from importlib import import_module
 import configparser
 import discord
+import random
 
 class Core():
     def __init__(self, prefix, token):
@@ -14,17 +15,27 @@ class Core():
     def setPrefix(self, prefix):
         self.prefix = prefix
 
+    def setLastMessage(self, message):
+        self.lastMessage = message
+
+    def getLastMessage(self):
+        if self.lastMessage:
+            return self.lastMessage
+        else:
+            return None
+
 class Configuration():
     def __init__(self):
         self.config = configparser.ConfigParser()
         self.file = os.path.abspath('./config.ini')
 
         if not os.path.exists(self.file):
-            self.config['DEFAULT'] = {'prefix':''}
+            self.config['DEFAULT'] = {'prefix':'', 'console_spacing':''}
             self.config['TOKENS'] = {'development':'', 'release':''}
             self.config['DEVELOPMENT'] = {'enabled':''}
             self.config['MODULES'] = {'enabled':'', 'folder':''}
             self.config['LOGGING'] = {'enabled':'', 'folder':'', 'module':''}
+            self.config['TYPING'] = {'pre':'', 'post':''}
             with open(self.file, 'w') as configFile:
                 self.config.write(configFile)
 
@@ -97,12 +108,29 @@ class Configuration():
     def getPrefix(self):
         return self.config.get('DEFAULT', 'prefix', fallback = '/')
 
+    def setConsoleSpacing(self, spacing):
+        self.config['DEFAULT']['console_spacing'] = spacing
+
+    def getConsoleSpacing(self):
+        return self.config.get('DEFAULT', 'console_spacing', fallback = 16)
+
     def writeOut(self):
         with open(self.file, 'w') as configFile:
             self.config.write(configFile)
 
+class Console():
+    def __init__(self, configuration):
+        self.consoleSpacing = configuration.getConsoleSpacing()
+
+    def output(self, string):
+        tag = 'Console'
+        output_string = f'{tag:{self.consoleSpacing}}{string}'
+        print(output_string)
+
 # initialize configuration instance
 configuration = Configuration()
+# initialize console instance
+console = Console(configuration)
 
 if configuration.getDevelopmentMode():
     # get development token and setup
@@ -129,9 +157,17 @@ async def on_ready():
     print('\n')
 
 @client.event
+async def on_typing(channel, user, time):
+    pre = configuration.getKeyValue('TYPING', 'pre')
+    post = configuration.getKeyValue('TYPING', 'post')
+    if random.random() < 10.01:
+        await channel.send(f'{pre} {user.display_name} {post}')
+
+@client.event
 async def on_message(message):
+    core.setLastMessage(message)
     # log message
-    print(f'{str(message.author):16}{str(message.clean_content)}')
+    print(f'{str(message.author):{configuration.getConsoleSpacing()}}{str(message.clean_content)}')
 
     # if the message's author is the bot
     if message.author == client.user:
@@ -164,8 +200,9 @@ async def on_message(message):
             command_instance = command(args)
             # set instance attributes
             command_instance.message = message
-            command_instance.configuration = configuration
             command_instance.prefix = prefix
+            command_instance.configuration = configuration
+            command_instance.console = console
             # run the instance's run method
             returned_data = await command_instance.run()
             if returned_data is not None:
