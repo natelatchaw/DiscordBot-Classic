@@ -161,7 +161,7 @@ async def on_typing(channel, user, time):
     pre = configuration.getKeyValue('TYPING', 'pre')
     post = configuration.getKeyValue('TYPING', 'post')
     if random.random() < 0.01:
-        await channel.send(f'{pre} {user.display_name} {post}')
+        await channel.send(f'{pre} {user.mention} {post}')
 
 @client.event
 async def on_message(message):
