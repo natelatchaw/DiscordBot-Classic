@@ -145,6 +145,8 @@ client = core.client
 
 @client.event
 async def on_ready():
+    # set status to online
+    await client.change_presence(status = discord.Status.online)
     print(f'Logged on as {client.user}: using {core.mode} token')
     print(f'Dev mode active: {configuration.getDevelopmentMode()}')
     print(f'Logging enabled: {configuration.getLoggingMode()}')
