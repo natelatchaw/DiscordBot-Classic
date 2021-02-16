@@ -3,8 +3,6 @@ from bot.core import Core
 
 # initialize client object
 client = discord.Client()
-token = ''
-prefix = ''
 
 main = Core(client, '/', 'production')
 
@@ -19,4 +17,5 @@ async def on_message(message):
         raise TypeError('Received an object that is not a message.')
     # handle message
 
-client.run(main.token)
+if main.token is not None:
+    client.run(main.token)

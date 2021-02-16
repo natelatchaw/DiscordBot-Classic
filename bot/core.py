@@ -34,7 +34,14 @@ class Core():
                 'An entry has been created for you to insert your token.'
             ])
             print(missingToken)
-            self._client.stop()
+            return None
+        elif not token:
+            emptyToken = ' '.join([
+                f'Entry with tag <{self._tag}> contained an empty string.',
+                'Please insert a token for sign-in.'
+            ])
+            print(emptyToken)
+            return None
         else:
             return token
     @token.setter
