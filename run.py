@@ -4,7 +4,9 @@ from bot.core import Core
 # initialize client object
 client = discord.Client()
 
-main = Core(client, '/', 'production')
+# initialize Core
+main = Core('production')
+main.prefix = '/'
 
 @client.event
 async def on_ready():
@@ -15,7 +17,15 @@ async def on_ready():
 async def on_message(message):
     if not isinstance(message, discord.Message):
         raise TypeError('Received an object that is not a message.')
-    # handle message
+    elif not main.prefix:
+        raise ValueError('No prefix has been set.')
+    else:
+        # handle message
+        print(message.content)
 
-if main.token is not None:
+try:
     client.run(main.token)
+except ValueError as valueError:
+    print(valueError)
+except TypeError as typeError:
+    print(typeError)

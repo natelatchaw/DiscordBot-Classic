@@ -1,60 +1,41 @@
 import discord
 import inspect
-from bot.configuration import Configuration
+from .configuration.tokenstore import TokenStore
+from .configuration.uxstore import UXStore
 
 class Core():
-    def __init__(self, client, prefix, tag):
-        self._prefix = prefix
+    def __init__(self, tag):
         self._tag = tag
-        self._client = client
-        self._config = Configuration()
-
-    @property
-    def client(self):
-        return self._client
+        self._tokenStore = TokenStore()
+        self._uxStore = UXStore()
 
     @property
     def prefix(self):
-        return self._prefix
+        return self._uxStore.prefix
     @prefix.setter
-    def set_prefix(self, prefix):
-        # make sure the prefix is a string of length 1
-        if not isinstance(prefix, str) and prefix.len != 1:
-            raise TypeError('Prefix must be a single character string.')
-        self._prefix = prefix
+    def prefix(self, prefix):
+        self._uxStore.prefix = prefix
 
     @property
     def token(self):
-        token = self._config.get_token(self._tag)
-        if token is None:
-            self._config.add_token(self._tag, 'INSERT TOKEN HERE')
-            self._config.write_out()
+        try:
+            return self._tokenStore.get_token(self._tag)
+        except ValueError as valueError:
+            print(valueError)
+            self._tokenStore.add_token(self._tag, 'INSERT TOKEN HERE')
             missingToken = ' '.join([
                 f'No entry found with tag <{self._tag}>. ',
                 'An entry has been created for you to insert your token.'
             ])
             print(missingToken)
-            return None
-        elif not token:
+            raise valueError
+        except TypeError as typeError:
             emptyToken = ' '.join([
                 f'Entry with tag <{self._tag}> contained an empty string.',
                 'Please insert a token for sign-in.'
             ])
             print(emptyToken)
-            return None
-        else:
-            return token
+            raise typeError
     @token.setter
-    def set_token(self, token):
-        self._config.add_token(self._tag, token)
-
-
-
-
-    async def start(self):
-        print(f'Connecting...')
-        await self._client.start(self._token)
-
-    async def stop(self):
-        print(f'Disconnecting...')
-        await self.client.stop()
+    def token(self, token):
+        self._tokenStore.add_token(self._tag, token)
