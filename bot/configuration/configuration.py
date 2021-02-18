@@ -25,15 +25,15 @@ class Configuration():
             self.write()
         # if the section name is not a string
         except TypeError:
-            print(f'Cannot add section {section}: {section} is not a string value.')
+            ##print(f'Cannot add section {section}: {section} is not a string value.')
             raise
         # if the default section name is passed
         except ValueError:
-            print(f'Cannot add section {section}: {section} is already the default section.')
+            ##print(f'Cannot add section {section}: {section} is already the default section.')
             raise
         # if a section name that already exists is passed
         except DuplicateSectionError:
-            print(f'Cannot add section {section}: {section} already exists.')
+            ##print(f'Cannot add section {section}: {section} already exists.')
             raise
 
     def set_key_value(self, section, key, value):
@@ -42,7 +42,8 @@ class Configuration():
             section = section.upper()
             self.add_section(section)
         except (ValueError, DuplicateSectionError):
-            print(f'Skipping {section} section creation during keypair add: section already exists.')
+            ##print(f'Skipping {section} section creation during keypair add: section already exists.')
+            pass
         finally:
             self._config.set(section, key, value)
             self.write()
