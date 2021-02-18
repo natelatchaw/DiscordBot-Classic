@@ -5,13 +5,18 @@ from .configuration import Configuration
 class UXStore(Configuration):
     def __init__(self):
         super().__init__()
+        # define section name
         self._sectionName = 'UX'
+        # try to initialize section in config file
         try:
+            # add a section to the config file
             self.add_section(self.sectionName)
+        # if the section already exists
         except (ValueError, DuplicateSectionError):
-            print(f'Skipping {self.sectionName} section creation during keypair add: section already exists.')
+            # notify abort of section creation
+            ##print(f'Skipping {self.sectionName} section creation during keypair add: section already exists.')
         finally:
-            print(f'Initialized UX settings store.')
+            print(f'Initialized {self._sectionName} configuration store.')
 
     @property
     def sectionName(self):
