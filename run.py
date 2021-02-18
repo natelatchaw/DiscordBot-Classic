@@ -1,5 +1,8 @@
 import discord
+import discord.ext
 from bot.core import Core
+from bot.handler import Handler
+from bot.archiver import Archiver
 
 # initialize client object
 client = discord.Client()
@@ -7,6 +10,9 @@ client = discord.Client()
 # initialize Core
 main = Core('production')
 main.prefix = '/'
+
+# initialize Handler
+handler = Handler(client)
 
 @client.event
 async def on_ready():
@@ -21,7 +27,7 @@ async def on_message(message):
         raise ValueError('No prefix has been set.')
     else:
         # handle message
-        print(message.content)
+        await handler.process(message)
 
 try:
     client.run(main.token)

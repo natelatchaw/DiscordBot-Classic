@@ -1,3 +1,4 @@
+import os
 import discord
 import inspect
 from .configuration.tokenstore import TokenStore
