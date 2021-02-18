@@ -14,6 +14,7 @@ class TokenStore(Configuration):
         except (ValueError, DuplicateSectionError):
             # notify abort of section creation
             ##print(f'Skipping {self.sectionName} section creation during keypair add: section already exists.')
+            pass
         finally:
             print(f'Initialized {self._sectionName} configuration store.')
 
