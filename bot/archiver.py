@@ -1,6 +1,9 @@
 import discord
 import sqlite3
 import os
+import re
+import random
+from .static.urlregex import urlRegex
 
 class Archiver():
 
@@ -28,7 +31,8 @@ class Archiver():
             CREATE TABLE IF NOT EXISTS CHANNEL{self._channel.id} (
                 MESSAGE_ID INTEGER UNIQUE PRIMARY KEY,
                 CONTENT TEXT,
-                AUTHOR_ID INTEGER
+                AUTHOR_ID INTEGER,
+                ATTACHMENTS TEXT
             )
         '''
         try:
@@ -58,17 +62,33 @@ class Archiver():
             
 
     async def insert(self, message):
+        if not isinstance(message, discord.Message):
+            raise TypeError(f'Message parameter was not of type {type(discord.Message)}.')
+
+        # assemble INSERT statement
         insert_statement = f'''
             INSERT INTO CHANNEL{self._channel.id} VALUES(
+                ?,
                 ?,
                 ?,
                 ?
             )
         '''
+
+        # find all urls in the message content
+        attachmentList = re.findall(urlRegex, message.content)
+        # for each attachment in the message
+        for attachment in message.attachments:
+            # add the attachment to the attachment list
+            attachmentList.append(attachment.url)
+        # concatenate the attachment urls 
+        attachmentCSV = ','.join(attachmentList)
+
         values = (
             message.id,
             message.content,
-            message.author.id
+            message.author.id,
+            attachmentCSV
         )
         try:
             self._cursor.execute(insert_statement, values)
@@ -78,6 +98,24 @@ class Archiver():
         except sqlite3.IntegrityError as integrityError:
             print(f'Message {message.id}: {integrityError.args}')
 
+    async def get_random_image(self):
+        select_statement = f'''
+            SELECT ATTACHMENTS FROM CHANNEL{self._channel.id}
+        '''
+        # execute the SELECT statement
+        self._cursor.execute(select_statement)
+        # fetch all results
+        attachments = self._cursor.fetchall()
+        # get the first tuple value for each list item
+        attachments = [attachment[0] for attachment in attachments]
+        # filter out empty strings
+        attachments = [attachment for attachment in attachments if attachment]
+        # select a random result
+        attachment = random.choice(attachments)
+        # result may be a CSV string, split it and concatenate with newline
+        results = attachment.split(',')
+        # return a random entry
+        return random.choice(results)
 
     async def get_oldest(self):
         select_statement = f'''

@@ -27,5 +27,9 @@ class Handler():
             await archiver.fetch()
             count = await archiver.get_count()
             await message.channel.send(f'{count} messages archived in {message.channel.mention}')
+        
+        elif 'random' in message.content:
+            attachment = await archiver.get_random_image()
+            await message.channel.send(attachment)
 
         archiver.close()
