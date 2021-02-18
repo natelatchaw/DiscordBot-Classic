@@ -13,6 +13,7 @@ class Handler():
 
         archiver = Archiver(message.channel)
         await archiver.create()
+        await archiver.insert(message)
 
         if not self._client.user in message.mentions:
             print(message.content)
