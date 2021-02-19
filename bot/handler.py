@@ -32,9 +32,7 @@ class Handler():
             end_time = datetime.now()
             # calculate the time elapsed
             delta_time = end_time - start_time
-            delta_seconds = delta_time.total_seconds()
-            count = await archiver.get_count()
-            await message.channel.send(f'{count} messages archived from {message.channel.mention} in {round(delta_seconds, 1)}s')
+            await message.channel.send(f'{message.channel.mention} archive updated in {round(delta_time.total_seconds(), 1)}s')
         
         elif 'random' in message.content:
             attachment = await archiver.get_random_image()
