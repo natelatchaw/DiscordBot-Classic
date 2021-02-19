@@ -1,4 +1,5 @@
 import discord
+from datetime import datetime
 from .archiver import Archiver
 
 class Handler():
@@ -24,9 +25,16 @@ class Handler():
 
         elif 'fetch' in message.content:
             await message.channel.send(f'Beginning download...')
+            # record the time before fetch is run
+            start_time = datetime.now()
             await archiver.fetch()
+            # record the time after fetch is run
+            end_time = datetime.now()
+            # calculate the time elapsed
+            delta_time = end_time - start_time
+            delta_seconds = delta_time.total_seconds()
             count = await archiver.get_count()
-            await message.channel.send(f'{count} messages archived in {message.channel.mention}')
+            await message.channel.send(f'{count} messages archived from {message.channel.mention} in {round(delta_seconds, 1)}s')
         
         elif 'random' in message.content:
             attachment = await archiver.get_random_image()

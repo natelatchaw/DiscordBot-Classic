@@ -41,7 +41,6 @@ class Archiver():
             print(exception)
 
     async def fetch(self, limit=None):
-        
         oldest_message_id = await self.get_oldest() or None
         try:
             oldest_message_snowflake = discord.utils.snowflake_time(oldest_message_id)
@@ -59,7 +58,6 @@ class Archiver():
         
         async for message in self._channel.history(limit=limit, after=newest_message_snowflake):
             await self.insert(message)
-            
 
     async def insert(self, message):
         if not isinstance(message, discord.Message):
@@ -97,25 +95,6 @@ class Archiver():
             self._connection.commit()
         except sqlite3.IntegrityError as integrityError:
             print(f'Message {message.id}: {integrityError.args}')
-
-    async def get_random_image(self):
-        select_statement = f'''
-            SELECT ATTACHMENTS FROM CHANNEL{self._channel.id}
-        '''
-        # execute the SELECT statement
-        self._cursor.execute(select_statement)
-        # fetch all results
-        attachments = self._cursor.fetchall()
-        # get the first tuple value for each list item
-        attachments = [attachment[0] for attachment in attachments]
-        # filter out empty strings
-        attachments = [attachment for attachment in attachments if attachment]
-        # select a random result
-        attachment = random.choice(attachments)
-        # result may be a CSV string, split it and concatenate with newline
-        results = attachment.split(',')
-        # return a random entry
-        return random.choice(results)
 
     async def get_oldest(self):
         select_statement = f'''
@@ -158,6 +137,25 @@ class Archiver():
         self._cursor.execute(select_statement)
         count = len(self._cursor.fetchall())
         return count
+
+    async def get_random_image(self):
+        select_statement = f'''
+            SELECT ATTACHMENTS FROM CHANNEL{self._channel.id}
+        '''
+        # execute the SELECT statement
+        self._cursor.execute(select_statement)
+        # fetch all results
+        attachments = self._cursor.fetchall()
+        # get the first tuple value for each list item
+        attachments = [attachment[0] for attachment in attachments]
+        # filter out empty strings
+        attachments = [attachment for attachment in attachments if attachment]
+        # select a random result
+        attachment = random.choice(attachments)
+        # result may be a CSV string, split it and concatenate with newline
+        results = attachment.split(',')
+        # return a random entry
+        return random.choice(results)
 
     def close(self):
         self._connection.close()
