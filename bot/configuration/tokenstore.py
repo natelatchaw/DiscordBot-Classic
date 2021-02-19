@@ -24,17 +24,37 @@ class TokenStore(Configuration):
     @sectionName.setter
     def set_sectionName(self, name):
         # set to capitalized variant of provided name
-        self._sectionName = name.upper()
+        self._sectionName = name.upper()    
+
+    @property
+    def mode(self):
+        # if the config is missing the TOKEN section
+        if not self._config.has_section(self.sectionName):
+            # add the TOKEN section to the config
+            self.add_section(self.sectionName)
+        try:
+            # get the mode value from the config file
+            mode = self.get_key_value(self.sectionName, 'mode')
+            if mode == '':
+                raise TypeError(f'Entry for token mode was empty.')
+            return mode
+        except (ValueError, TypeError) as error:
+            print('Tried to get entry for token mode but the entry either did not exist or was empty.')
+            raise error
+    @mode.setter
+    def mode(self, mode): 
+        # add the token mode settings pair to the TOKEN section
+        self.set_key_value(self.sectionName, 'mode', mode)
 
     def add_token(self, tag, token):
         # if the config is missing the token section
         if not self._config.has_section(self.sectionName):
             # add the token section to the config
-            self._config.add_section(self.sectionName)
+            self.add_section(self.sectionName)
+            # set the default mode to the token provided
+            self.mode = tag
         # add the tag/token pair to the token section
         self.set_key_value(self.sectionName, tag, token)
-        # write changes
-        self.write()
 
     def get_token(self, tag):
         # if the config is missing the token section
@@ -42,13 +62,13 @@ class TokenStore(Configuration):
             # add the token section to the config
             self.add_section(self.sectionName)
         try:
+            # if the provided tag is None
+            if tag is None:
+                raise TypeError(f'Tag to retreive token entry for was type {type(tag)}.')
             # get the token from the config file
             token = self.get_key_value(self.sectionName, tag)
             if token == '':
-                print("TOKEN IS EMPTY")
                 raise TypeError(f'Token entry for tag {tag} was empty.')
             return token
-        except ValueError as valueError:
-            raise valueError
-        except TypeError as typeError:
-            raise typeError
+        except (ValueError, TypeError) as error:
+            raise error

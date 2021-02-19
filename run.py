@@ -8,7 +8,7 @@ from bot.archiver import Archiver
 client = discord.Client()
 
 # initialize Core
-main = Core('production')
+main = Core()
 main.prefix = '/'
 
 # initialize Handler
