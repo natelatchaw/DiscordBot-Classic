@@ -24,7 +24,7 @@ class Handler():
             await message.channel.send(f'{count} messages archived in {message.channel.mention}')
 
         elif 'fetch' in message.content:
-            await message.channel.send(f'Beginning download...')
+            message_reference = await message.channel.send(f'Beginning download...')
             # record the time before fetch is run
             start_time = datetime.now()
             await archiver.fetch()
@@ -32,7 +32,9 @@ class Handler():
             end_time = datetime.now()
             # calculate the time elapsed
             delta_time = end_time - start_time
-            await message.channel.send(f'{message.channel.mention} archive updated in {round(delta_time.total_seconds(), 1)}s')
+            await message_reference.edit(content=f'{message.channel.mention} archive updated in {round(delta_time.total_seconds(), 1)}s')
+        
+            #await message.channel.send(f'{message.channel.mention} archive updated in {round(delta_time.total_seconds(), 1)}s')
         
         elif 'random' in message.content:
             attachment = await archiver.get_random_image()
