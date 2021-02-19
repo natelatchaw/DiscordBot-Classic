@@ -9,7 +9,6 @@ client = discord.Client()
 
 # initialize Core
 main = Core()
-main.prefix = '/'
 
 # initialize Handler
 handler = Handler(client)
