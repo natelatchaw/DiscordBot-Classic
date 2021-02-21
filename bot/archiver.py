@@ -138,24 +138,24 @@ class Archiver():
         count = len(self._cursor.fetchall())
         return count
 
-    async def get_random_image(self):
+    async def get_random_attachment_message(self):
         select_statement = f'''
-            SELECT ATTACHMENTS FROM CHANNEL{self._channel.id}
+            SELECT MESSAGE_ID, ATTACHMENTS FROM CHANNEL{self._channel.id}
         '''
         # execute the SELECT statement
         self._cursor.execute(select_statement)
         # fetch all results
-        attachments = self._cursor.fetchall()
-        # get the first tuple value for each list item
-        attachments = [attachment[0] for attachment in attachments]
-        # filter out empty strings
-        attachments = [attachment for attachment in attachments if attachment]
-        # select a random result
-        attachment = random.choice(attachments)
-        # result may be a CSV string, split it and concatenate with newline
-        results = attachment.split(',')
-        # return a random entry
-        return random.choice(results)
+        entries = self._cursor.fetchall()
+        # filter out entries with empty attachment strings
+        entries = [entry for entry in entries if entry[1]]
+        # select a random entry
+        message_id, attachments = random.choice(entries)
+        # attachments may be a CSV string with multiple URLs, split it and concatenate with newline
+        attachment_urls = attachments.split(',')
+        # return a random url
+        attachment_url = random.choice(attachment_urls)
+        # return the author id and url
+        return message_id, attachment_url
 
     def close(self):
         self._connection.close()

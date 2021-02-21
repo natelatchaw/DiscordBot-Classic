@@ -37,7 +37,16 @@ class Handler():
             #await message.channel.send(f'{message.channel.mention} archive updated in {round(delta_time.total_seconds(), 1)}s')
         
         elif 'random' in message.content:
-            attachment = await archiver.get_random_image()
-            await message.channel.send(attachment)
+            message_id, attachment_url = await archiver.get_random_attachment_message()
+            message = await message.channel.fetch_message(message_id)
+            
+            embed = discord.Embed()
+            embed.set_author(name=message.author.name, url=message.jump_url, icon_url=message.author.avatar_url)
+            embed.title = attachment_url
+            embed.set_image(url=attachment_url)
+            embed.timestamp = message.created_at
+            print(attachment_url)
+
+            await message.channel.send(embed=embed)
 
         archiver.close()
