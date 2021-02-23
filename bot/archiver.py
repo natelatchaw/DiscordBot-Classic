@@ -138,6 +138,29 @@ class Archiver():
         count = len(self._cursor.fetchall())
         return count
 
+    async def get_random_youtube_link(self):
+        select_statement = f'''
+            SELECT MESSAGE_ID, ATTACHMENTS FROM CHANNEL{self._channel.id}
+        '''
+        # execute the SELECT statement
+        self._cursor.execute(select_statement)
+        # fetch all results
+        entries = self._cursor.fetchall()
+        # if no entries are available
+        if entries.count == 0: raise ValueError("No entries available.")
+        # filter out entries with empty attachment strings
+        entries = [entry for entry in entries if entry[1]]
+        # get all attachments with youtube in the URL
+        entries = [entry for entry in entries if 'youtube' in entry[1]]
+        # select a random entry
+        _, attachments = random.choice(entries)
+        # attachments may be a CSV string with multiple URLs, split it and concatenate with newline
+        attachment_urls = attachments.split(',')
+        # return a random url
+        attachment_url = random.choice(attachment_urls)
+        # return the author id and url
+        return attachment_url
+
     async def get_random_attachment_message(self):
         select_statement = f'''
             SELECT MESSAGE_ID, ATTACHMENTS FROM CHANNEL{self._channel.id}
