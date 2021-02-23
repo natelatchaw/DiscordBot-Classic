@@ -41,10 +41,6 @@ class Handler():
             # calculate the time elapsed
             delta_time = end_time - start_time
             await message_reference.edit(content=f'{message.channel.mention} archive updated in {round(delta_time.total_seconds(), 1)}s')
-
-        elif 'queue' in message.content:
-            attachment_url = await archiver.get_random_youtube_link()
-            await message.channel.send(f'!p {attachment_url}')
                 
         elif 'random' in message.content:
             message_id, attachment_url = await archiver.get_random_attachment_message()
