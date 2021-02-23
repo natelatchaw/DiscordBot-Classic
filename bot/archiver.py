@@ -146,6 +146,8 @@ class Archiver():
         self._cursor.execute(select_statement)
         # fetch all results
         entries = self._cursor.fetchall()
+        # if no entries are available
+        if entries.count == 0: raise ValueError("No entries available.")
         # filter out entries with empty attachment strings
         entries = [entry for entry in entries if entry[1]]
         # select a random entry
