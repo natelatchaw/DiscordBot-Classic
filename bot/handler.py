@@ -53,6 +53,7 @@ class Handler():
 
             embed = discord.Embed()
             embed.set_author(name=message.author.name, url=message.jump_url, icon_url=message.author.avatar_url)
+            embed.title = message.jump_url
             embed.timestamp = message.created_at
 
             # if a file
@@ -62,7 +63,6 @@ class Handler():
 
             # if not a file
             else:
-                embed.title = attachment_url
                 print(contentType)
                 await message.channel.send(attachment_url)
                 await message.channel.send(embed=embed)
