@@ -49,21 +49,20 @@ class Handler():
             # check if the url's destination if actually a file
             cachedFile = requests.head(attachment_url, allow_redirects=True)
             contentType = cachedFile.headers.get('content-type')
-            isFile = not ('text' or 'html' in contentType.lower())
+            isImage = 'image' in contentType.lower()
 
             embed = discord.Embed()
             embed.set_author(name=message.author.name, url=message.jump_url, icon_url=message.author.avatar_url)
             embed.title = message.jump_url
             embed.timestamp = message.created_at
 
-            # if a file
-            if isFile:
+            # if an Image
+            if isImage:
                 embed.set_image(url=attachment_url)
                 await message.channel.send(embed=embed)
 
-            # if not a file
+            # if not an Image
             else:
-                print(contentType)
                 await message.channel.send(attachment_url)
                 await message.channel.send(embed=embed)
 
