@@ -3,7 +3,9 @@ import sqlite3
 import os
 import re
 import random
+from datetime import datetime, timezone
 from .static.urlregex import urlRegex
+from .static.snowflake import Snowflake
 
 class Archiver():
 
@@ -138,6 +140,52 @@ class Archiver():
         count = len(self._cursor.fetchall())
         return count
 
+    async def get_message(self, message_id):
+        select_statement = f'''
+            SELECT MESSAGE_ID, AUTHOR_ID, CONTENT FROM CHANNEL{self._channel.id}
+            WHERE MESSAGE_ID = {message_id}
+        '''
+        # execute the SELECT statement
+        self._cursor.execute(select_statement)
+        # fetch all results
+        entries = self._cursor.fetchall()
+        # if no entries are available
+        if len(entries) == 0: raise ValueError("No entries found matching your criteria.")
+        message_id, author_id, content = entries.pop()
+        return message_id, author_id, content
+
+
+    async def get_last_year(self):
+        # get the current datetime in UTC
+        now = datetime.now(timezone.utc)
+
+        # get the datetime for the beginning of today
+        today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        # get the datetime for the beginning of tomorrow
+        tomorrow = today.replace(day=(today.day+1))
+
+        # get the snowflake for the beginning of today, but one year ago
+        today_snowflake = Snowflake.from_timestamp(today.replace(year=(today.year-1)))
+        # get the snowflake for the beginning of tomorrow, but one year ago
+        tomorrow_snowflake = Snowflake.from_timestamp(tomorrow.replace(year=(tomorrow.year-1)))
+        
+        select_statement = f'''
+            SELECT MESSAGE_ID, CONTENT FROM CHANNEL{self._channel.id}
+            WHERE MESSAGE_ID BETWEEN {today_snowflake} AND {tomorrow_snowflake}
+        '''
+        # execute the SELECT statement
+        self._cursor.execute(select_statement)
+        # fetch all results
+        entries = self._cursor.fetchall()
+        # if no entries are available
+        if len(entries) == 0: raise ValueError("No entries found matching your criteria.")
+        # filter out entries with empty content strings
+        entries = [entry for entry in entries if entry[1]]
+        # select a random entry
+        message_id, content = random.choice(entries)
+        return message_id, content
+        
+
     async def get_random_youtube_link(self):
         select_statement = f'''
             SELECT MESSAGE_ID, ATTACHMENTS FROM CHANNEL{self._channel.id}
@@ -147,7 +195,7 @@ class Archiver():
         # fetch all results
         entries = self._cursor.fetchall()
         # if no entries are available
-        if entries.count == 0: raise ValueError("No entries available.")
+        if len(entries) == 0: raise ValueError("No entries found matching your criteria.")
         # filter out entries with empty attachment strings
         entries = [entry for entry in entries if entry[1]]
         # get all attachments with youtube in the URL

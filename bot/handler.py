@@ -13,6 +13,8 @@ class Handler():
         if not isinstance(message, discord.Message):
             raise TypeError(f'Cannot process object that is not of type {type(discord.Message)}')
 
+        content = ' '.join(message.content.split()[1:])
+
         archiver = Archiver(message.channel)
         await archiver.create()
         await archiver.insert(message)
@@ -41,15 +43,42 @@ class Handler():
             # calculate the time elapsed
             delta_time = end_time - start_time
             await message_reference.edit(content=f'{message.channel.mention} archive updated in {round(delta_time.total_seconds(), 1)}s')
+
+        elif 'last year' in message.content:
+            # try to get a message id from last year
+            try:
+                message_id, content = await archiver.get_last_year()
+            # if a message could not be found
+            except ValueError as valueError:
+                # send the content of the error
+                await message.channel.send(valueError)
+                return
+            # fetch the message from the channel via message id
+            message = await message.channel.fetch_message(message_id)
+            # create an embed containing the message's content
+            embed = discord.Embed()
+            embed.set_author(name=message.author.name, url=message.jump_url, icon_url=message.author.avatar_url)
+            embed.title = message.content
+            embed.timestamp = message.created_at
+            # send the embed
+            await message.channel.send(embed=embed)
                 
         elif 'random' in message.content:
             message_id, attachment_url = await archiver.get_random_attachment_message()
             message = await message.channel.fetch_message(message_id)
 
             # check if the url's destination if actually a file
-            cachedFile = requests.head(attachment_url, allow_redirects=True)
-            contentType = cachedFile.headers.get('content-type')
+            headResponse = requests.head(attachment_url, allow_redirects=True)
+            contentType = headResponse.headers.get('content-type')
             isImage = 'image' in contentType.lower()
+            print(isImage)
+
+            if isImage:
+                print(attachment_url)
+                getResponse = requests.get(attachment_url, allow_redirects=True)
+                print(getResponse.history)
+                attachment_url = getResponse.url
+                print(attachment_url)
 
             embed = discord.Embed()
             embed.set_author(name=message.author.name, url=message.jump_url, icon_url=message.author.avatar_url)
