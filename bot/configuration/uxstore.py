@@ -50,6 +50,40 @@ class UXStore(Configuration):
         self.set_key_value(self.sectionName, 'prefix', prefix)
 
     @property
+    def owner(self):
+        # if the config is missing the UX section
+        if not self._config.has_section(self.sectionName):
+            # add the UX section to the config
+            self.add_section(self.sectionName)
+        try:
+            # get the owner id value from the config file
+            owner = self.get_key_value(self.sectionName, 'owner')
+        except ValueError as valueError:
+            print(valueError)
+            print(f'A blank entry for owner has been created in the {self.sectionName} section.')
+            self.set_key_value(self.sectionName, 'owner', '')
+            raise
+        try:
+            if owner == '':
+                raise TypeError(f'Entry for owner was empty.')
+            return owner
+        except (ValueError, TypeError) as error:
+            print(error)
+    @owner.setter
+    def owner(self, owner): 
+        # make sure the prefix is a string
+        if not isinstance(owner, str) and not isinstance(owner, int):
+            raise TypeError('Owner ID must be a numeric string or an integer.')
+        # try to parse the owner parameter to an integer
+        try:
+            owner = int(owner)
+        # if owner parameter cannot be parsed to an integer
+        except NameError as nameError:
+            raise TypeError('Provided owner ID cannot be parsed to an integer.')
+        # add the UX settings pair to the UX section
+        self.set_key_value(self.sectionName, 'owner', owner)
+
+    @property
     def modules(self):
         # if the config is missing the UX section
         if not self._config.has_section(self.sectionName):

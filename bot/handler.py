@@ -1,29 +1,75 @@
 import discord
 from datetime import datetime
 from .archiver import Archiver
+from .configuration.uxstore import UXStore
 import requests
 
 class Handler():
-    def __init__(self, client):
+    def __init__(self, client, uxStore):
         if not isinstance(client, discord.Client):
             raise TypeError('Invalid client parameter passed.')
         self._client = client
+        self._uxStore = uxStore
+        # create dictionary of archiver objects
+        self._archivers = dict()
 
     async def process(self, message):
+        # filter non-message objects
         if not isinstance(message, discord.Message):
             raise TypeError(f'Cannot process object that is not of type {type(discord.Message)}')
 
-        content = ' '.join(message.content.split()[1:])
+        # if an archiver instance hasn't been created for the current channel
+        if message.channel.id not in self._archivers:
+            # create an archiver instance
+            archiver = Archiver(message.channel)
+            # add the archiver instance to the archiver dict
+            self._archivers[message.channel.id] = archiver
+            print(f'Created archiver instance for channel {message.channel.id}')
+        # if an archiver instance already exists for the current channel
+        else:
+            # get the archiver instance
+            archiver = self._archivers[message.channel.id]
+            print(f'Found archiver instance for channel {message.channel.id}')
 
-        archiver = Archiver(message.channel)
+        # create a table for the current channel if it hasn't been created yet
         await archiver.create()
+        # insert the current message into the archiver
         await archiver.insert(message)
 
+        # if the message doesn't ping the bot (i.e., is not a command)
         if not self._client.user in message.mentions:
+            # print the message
             print(message.content)
             
         elif 'delete' in message.content:
-            if message.author.id != 196844910563950592: return
+            # try to get the owner id from the config
+            try:
+                # get the bot owner id
+                bot_owner_id = str(self._uxStore.owner)
+            # if an error occurred retrieving the owner id
+            except ValueError as valueError:
+                # set the bot owner id to None
+                bot_owner_id = None
+
+            # if the members intent is available
+            if discord.Intents.members:
+                # get the guild owner id
+                server_owner_id = str(message.guild.owner.id)
+            # otherwise
+            else:
+                # set the guild owner id to None
+                server_owner_id = None
+
+            # create user whitelist
+            whitelist = [
+                bot_owner_id,
+                server_owner_id
+            ]
+
+            # if the message author is not in the whitelist
+            if str(message.author.id) not in whitelist:
+                await message.channel.send('You are not permitted to use this functionality.')
+                raise ValueError(f'{message.author.id} is not a whitelisted user ID.')
             messages = []
             async for message in message.channel.history():
                 messages.append(message)

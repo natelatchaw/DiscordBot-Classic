@@ -29,6 +29,7 @@ class Archiver():
         self._cursor = self._connection.cursor()
 
     async def create(self):
+        # assemble create statment
         create_statement = f'''
             CREATE TABLE IF NOT EXISTS CHANNEL{self._channel.id} (
                 MESSAGE_ID INTEGER UNIQUE PRIMARY KEY,
@@ -37,31 +38,15 @@ class Archiver():
                 ATTACHMENTS TEXT
             )
         '''
+        # try to create table for channel
         try:
+            # execute the create statement
             self._cursor.execute(create_statement)
         except Exception as exception:
             print(exception)
 
-    async def fetch(self, limit=None):
-        oldest_message_id = await self.get_oldest() or None
-        try:
-            oldest_message_snowflake = discord.utils.snowflake_time(oldest_message_id)
-        except TypeError:
-            oldest_message_snowflake = None
-
-        newest_message_id = await self.get_newest() or None
-        try:
-            newest_message_snowflake = discord.utils.snowflake_time(newest_message_id)
-        except TypeError:
-            newest_message_snowflake = None
-
-        async for message in self._channel.history(limit=limit, before=oldest_message_snowflake):
-            await self.insert(message)
-        
-        async for message in self._channel.history(limit=limit, after=newest_message_snowflake):
-            await self.insert(message)
-
     async def insert(self, message):
+        # filter non-message objects
         if not isinstance(message, discord.Message):
             raise TypeError(f'Message parameter was not of type {type(discord.Message)}.')
 
@@ -74,7 +59,6 @@ class Archiver():
                 ?
             )
         '''
-
         # find all urls in the message content
         attachmentList = re.findall(urlRegex, message.content)
         # for each attachment in the message
@@ -83,27 +67,55 @@ class Archiver():
             attachmentList.append(attachment.url)
         # concatenate the attachment urls 
         attachmentCSV = ','.join(attachmentList)
-
+        # create values tuple
         values = (
             message.id,
             message.content,
             message.author.id,
             attachmentCSV
         )
+        # try to insert and save message values
         try:
+            # execute the insert statement with parameter injection
             self._cursor.execute(insert_statement, values)
             print(f'Message {message.id}: inserted')
             # save changes
             self._connection.commit()
+        # catch integrity errors (UNIQUE constraints, etc.)
         except sqlite3.IntegrityError as integrityError:
             print(f'Message {message.id}: {integrityError.args}')
 
+    async def fetch(self, limit=None):
+        # get message id of oldest message in database
+        oldest_message_id = await self.get_oldest() or None
+        try:
+            oldest_message_snowflake = discord.utils.snowflake_time(oldest_message_id)
+        except TypeError:
+            oldest_message_snowflake = None
+
+        # get message id of newest message in database
+        newest_message_id = await self.get_newest() or None
+        try:
+            newest_message_snowflake = discord.utils.snowflake_time(newest_message_id)
+        except TypeError:
+            newest_message_snowflake = None
+
+        # iterate through all channel messages older than oldest message in database (if available)
+        async for message in self._channel.history(limit=limit, before=oldest_message_snowflake):
+            await self.insert(message)
+
+        # iterate through all channel messages newer than newest message in database (if available)
+        async for message in self._channel.history(limit=limit, after=newest_message_snowflake):
+            await self.insert(message)
+
     async def get_oldest(self):
+        # assemble select statement
         select_statement = f'''
             SELECT MESSAGE_ID FROM CHANNEL{self._channel.id}
             ORDER BY MESSAGE_ID ASC
             LIMIT 1
         '''
+        # execute the insert statement with parameter injection
         self._cursor.execute(select_statement)
         # fetch the first (and only) row
         oldest_entry = self._cursor.fetchone()
@@ -133,14 +145,18 @@ class Archiver():
         return newest_message_id
 
     async def get_count(self):
+        # assemble select statement
         select_statement = f'''
             SELECT * FROM CHANNEL{self._channel.id}
         '''
+        # execute the select statement
         self._cursor.execute(select_statement)
+        # get the length of the returned query
         count = len(self._cursor.fetchall())
         return count
 
     async def get_message(self, message_id):
+        # assemble select statement
         select_statement = f'''
             SELECT MESSAGE_ID, AUTHOR_ID, CONTENT FROM CHANNEL{self._channel.id}
             WHERE MESSAGE_ID = {message_id}
@@ -151,6 +167,7 @@ class Archiver():
         entries = self._cursor.fetchall()
         # if no entries are available
         if len(entries) == 0: raise ValueError("No entries found matching your criteria.")
+        # get the message id, author id and message content from first entry
         message_id, author_id, content = entries.pop()
         return message_id, author_id, content
 
@@ -168,7 +185,8 @@ class Archiver():
         today_snowflake = Snowflake.from_timestamp(today.replace(year=(today.year-1)))
         # get the snowflake for the beginning of tomorrow, but one year ago
         tomorrow_snowflake = Snowflake.from_timestamp(tomorrow.replace(year=(tomorrow.year-1)))
-        
+
+        # assemble select statement
         select_statement = f'''
             SELECT MESSAGE_ID, CONTENT FROM CHANNEL{self._channel.id}
             WHERE MESSAGE_ID BETWEEN {today_snowflake} AND {tomorrow_snowflake}

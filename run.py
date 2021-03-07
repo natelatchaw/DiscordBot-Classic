@@ -5,28 +5,29 @@ from bot.handler import Handler
 from bot.archiver import Archiver
 
 # initialize client object
-client = discord.Client()
+client = discord.Client(intents=discord.Intents.all())
 
 # initialize Core
 main = Core()
 
 # initialize Handler
-handler = Handler(client)
+handler = Handler(client, main._uxStore)
 
 @client.event
 async def on_ready():
     # startup tasks
-    print('ready')
+    print(f'{client.user.name} loaded in {main.mode} mode.')
 
 @client.event
 async def on_message(message):
+    # filter non-message objects
     if not isinstance(message, discord.Message):
         raise TypeError('Received an object that is not a message.')
+    # if config is missing prefix
     elif not main.prefix:
         raise ValueError('No prefix has been set.')
-    else:
-        # handle message
-        await handler.process(message)
+    # handle message
+    await handler.process(message)
 
 try:
     client.run(main.token)

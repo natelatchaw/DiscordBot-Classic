@@ -46,11 +46,13 @@ class Configuration():
             self.write()
 
     def get_key_value(self, section, key):
+        # reload the config file to get changes
+        self.reload()
         # get the value for the provided key if it exists, or None if not
         value = self._config.get(section, key, fallback=None)
         # if the key does not exist in the config file
         if value is None:
-            raise ValueError(f'Config file does not contain a key in section {section} for key {key}')
+            raise ValueError(f'Config file does not contain a key in section {section} for key: {key}.')
         # otherwise return value
         else:
             return value
