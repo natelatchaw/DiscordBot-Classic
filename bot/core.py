@@ -25,19 +25,20 @@ class Core():
 
     @property
     def modules(self):
+        entry_name = 'modules'
         try:
             return self._uxStore.modules
         except ValueError as valueError:
-            self._uxStore.set_key_value(self._uxStore.sectionName, 'modules', '')
+            self._uxStore.set_key_value(self._uxStore.sectionName, entry_name, '')
             missingModules = ' '.join([
-                f'No modules entry found.',
-                'An entry has been created for you to insert the modules path.'
+                f'No {entry_name} entry found.',
+                f'An entry has been created for you to insert the {entry_name} path.'
             ])
             raise ValueError(missingModules)
         except TypeError as typeError:
             emptyToken = ' '.join([
-                f'The modules entry contained an empty string.',
-                'Please insert a modules path.'
+                f'The {entry_name} entry contained an empty string.',
+                f'Please insert a {entry_name} path.'
             ])
             raise TypeError(typeError)
     @modules.setter
@@ -46,19 +47,20 @@ class Core():
 
     @property
     def mode(self):
+        entry_name = 'mode'
         try:
             return self._tokenStore.mode
         except ValueError as valueError:
-            self._tokenStore.add_token('mode', '')
+            self._tokenStore.mode = ''
             missingMode = ' '.join([
-                f'No token mode entry found.',
-                'An entry has been created for you to insert the token mode.'
+                f'No token {entry_name} entry found.',
+                f'An entry has been created for you to insert the token {entry_name}.'
             ])
             raise ValueError(missingMode)
         except TypeError as typeError:
             emptyToken = ' '.join([
-                f'The token mode entry contained an empty string.',
-                'Please insert a token mode.'
+                f'The token {entry_name} entry contained an empty string.',
+                f'Please insert a token {entry_name}.'
             ])
             raise TypeError(emptyToken)
     @mode.setter

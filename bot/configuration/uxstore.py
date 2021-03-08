@@ -29,23 +29,23 @@ class UXStore(Configuration):
 
     @property
     def prefix(self):
-        entryName = 'prefix'
+        entry_name = 'prefix'
         # if the config is missing the UX section
         if not self._config.has_section(self.sectionName):
             # add the UX section to the config
             self.add_section(self.sectionName)
         # try to get the entry from the config file
         try:
-            prefix = self.get_key_value(self.sectionName, entryName)
+            prefix = self.get_key_value(self.sectionName, entry_name)
         except ValueError as valueError:
-            print(f'{valueError}\nA blank {entryName} entry has been created in the {self.sectionName} section.')
-            self.set_key_value(self.sectionName, entryName, '')
+            print(f'{valueError}\nA blank {entry_name} entry has been created in the {self.sectionName} section.')
+            self.set_key_value(self.sectionName, entry_name, '')
             raise
         if prefix == '':
-            raise ValueError(f'The configuration entry for {entryName} was blank.')
+            raise ValueError(f'The configuration entry for {entry_name} was blank.')
     @prefix.setter
     def prefix(self, prefix):
-        entryName = 'prefix'
+        entry_name = 'prefix'
         # if the entry is not a one character string
         if not (isinstance(prefix, str) and prefix.len == 1):
             raise TypeError('Prefix must be a single character string.')
@@ -54,48 +54,48 @@ class UXStore(Configuration):
 
     @property
     def owner(self):
-        entryName = 'owner'
+        entry_name = 'owner'
         # if the config is missing the UX section
         if not self._config.has_section(self.sectionName):
             # add the UX section to the config
             self.add_section(self.sectionName)
         # try to get the entry from the config file
         try:
-            owner = self.get_key_value(self.sectionName, entryName)
+            owner = self.get_key_value(self.sectionName, entry_name)
         except ValueError as valueError:
-            print(f'{valueError}\nA blank configuration entry has been created in the {self.sectionName} section for {entryName}.')
-            self.set_key_value(self.sectionName, entryName, '')
+            print(f'{valueError}\nA blank configuration entry has been created in the {self.sectionName} section for {entry_name}.')
+            self.set_key_value(self.sectionName, entry_name, '')
             raise
         if owner == '':
-            raise ValueError(f'The configuration entry for {entryName} was blank.')
+            raise ValueError(f'The configuration entry for {entry_name} was blank.')
     @owner.setter
     def owner(self, owner): 
-        entryName = 'owner'
+        entry_name = 'owner'
         # if the entry is not a string or integer
         if not isinstance(owner, str) and not isinstance(owner, int):
-            raise TypeError(f'{entryName} configuration entry must be a numeric string or an integer.')
+            raise TypeError(f'{entry_name} configuration entry must be a numeric string or an integer.')
         # try to parse the entry to an integer
         try:
             owner = int(owner)
         # if entry cannot be parsed to an integer
         except NameError as nameError:
-            raise TypeError(f'Configuration entry for {entryName} cannot be parsed to an integer.')
+            raise TypeError(f'Configuration entry for {entry_name} cannot be parsed to an integer.')
         # add the UX settings pair to the UX section
-        self.set_key_value(self.sectionName, entryName, owner)
+        self.set_key_value(self.sectionName, entry_name, owner)
 
     @property
     def modules(self):
-        entryName = 'modules'
+        entry_name = 'modules'
         # if the config is missing the UX section
         if not self._config.has_section(self.sectionName):
             # add the UX section to the config
             self.add_section(self.sectionName)
         try:
             # get the folder name from the config file
-            modules = self.get_key_value(self.sectionName, entryName)
+            modules = self.get_key_value(self.sectionName, entry_name)
             # if the modules key is empty
             if modules == '':
-                raise TypeError(f'Entry for {entryName} was empty.')
+                raise TypeError(f'Entry for {entry_name} was empty.')
             # get a Path instance from the provided string path
             path = pathlib.Path(modules)
             # if the path doesn't exist
@@ -107,7 +107,7 @@ class UXStore(Configuration):
             raise
     @modules.setter
     def modules(self, modules):
-        entryName = 'modules'
+        entry_name = 'modules'
         # get a Path instance from the provided string path
         path = pathlib.Path(modules)
         # if the path doesn't exist
@@ -115,4 +115,4 @@ class UXStore(Configuration):
             # create the directory if it doesn't exist
             path.mkdir(parents=true, exist_ok=true)
         # add the modules path to the UX section
-        self.set_key_value(self.sectionName, entryName, modules)
+        self.set_key_value(self.sectionName, entry_name, modules)

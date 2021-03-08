@@ -28,13 +28,15 @@ class TokenStore(Configuration):
 
     @property
     def mode(self):
+        default_section = 'DEFAULT'
+        entry_name = 'token'
         # if the config is missing the TOKEN section
-        if not self._config.has_section(self.sectionName):
+        if not self._config.has_section(default_section):
             # add the TOKEN section to the config
-            self.add_section(self.sectionName)
+            self.add_section(default_section)
         try:
             # get the mode value from the config file
-            mode = self.get_key_value(self.sectionName, 'mode')
+            mode = self.get_key_value(default_section, entry_name)
             if mode == '':
                 raise TypeError(f'Entry for token mode was empty.')
             return mode
@@ -42,9 +44,11 @@ class TokenStore(Configuration):
             print('Tried to get entry for token mode but the entry either did not exist or was empty.')
             raise error
     @mode.setter
-    def mode(self, mode): 
+    def mode(self, mode):
+        default_section = 'DEFAULT'
+        entry_name = 'token'
         # add the token mode settings pair to the TOKEN section
-        self.set_key_value(self.sectionName, 'mode', mode)
+        self.set_key_value(default_section, entry_name, mode)
 
     def add_token(self, tag, token):
         # if the config is missing the token section

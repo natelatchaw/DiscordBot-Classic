@@ -28,7 +28,9 @@ class Configuration():
             raise TypeError(f'Cannot add section {section}: {section} is not a string value.')
         # if the default section name is passed
         except ValueError:
-            raise ValueError(f'Cannot add section {section}: {section} is already the default section.')
+            pass
+            # bypass the error below; useful for debugging purposes
+            # raise ValueError(f'Cannot add section {section}: {section} is already the default section.')
         # if a section name that already exists is passed
         except DuplicateSectionError:
             raise DuplicateSectionError(f'Cannot add section {section}: {section} already exists.')
