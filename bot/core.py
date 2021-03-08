@@ -17,6 +17,34 @@ class Core():
         self._uxStore.prefix = prefix
 
     @property
+    def owner(self):
+        return self._uxStore.owner
+    @owner.setter
+    def owner(self, owner):
+        self._uxStore.owner = owner
+
+    @property
+    def modules(self):
+        try:
+            return self._uxStore.modules
+        except ValueError as valueError:
+            self._uxStore.set_key_value(self._uxStore.sectionName, 'modules', '')
+            missingModules = ' '.join([
+                f'No modules entry found.',
+                'An entry has been created for you to insert the modules path.'
+            ])
+            raise ValueError(missingModules)
+        except TypeError as typeError:
+            emptyToken = ' '.join([
+                f'The modules entry contained an empty string.',
+                'Please insert a modules path.'
+            ])
+            raise TypeError(typeError)
+    @modules.setter
+    def modules(self, modules):
+        self._uxStore.modules = modules
+
+    @property
     def mode(self):
         try:
             return self._tokenStore.mode
@@ -29,7 +57,7 @@ class Core():
             raise ValueError(missingMode)
         except TypeError as typeError:
             emptyToken = ' '.join([
-                f'Token mode entry contained an empty string.',
+                f'The token mode entry contained an empty string.',
                 'Please insert a token mode.'
             ])
             raise TypeError(emptyToken)

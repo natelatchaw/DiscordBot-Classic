@@ -1,17 +1,57 @@
-import discord
+import asyncio
+import pathlib
+import inspect
+import importlib.util
 from datetime import datetime
-from .archiver import Archiver
-from .configuration.uxstore import UXStore
+import discord
 import requests
+from .archiver import Archiver
+from .core import Core
 
 class Handler():
-    def __init__(self, client, uxStore):
+    def __init__(self, client, core):
         if not isinstance(client, discord.Client):
             raise TypeError('Invalid client parameter passed.')
-        self._client = client
-        self._uxStore = uxStore
+        else:
+            self._client = client
+
+        if not isinstance(core, Core):
+            raise TypeError('Invalid core parameter passed.')
+        else:
+            self._core = core
         # create dictionary of archiver objects
         self._archivers = dict()
+
+        self.load()
+
+    def __del__(self):
+        # for every channel archiver that was instantiated
+        for archiver in self._archivers:
+            archiver.close()
+
+    def load(self):
+        try:
+            if self._core.modules is None:
+                raise TypeError('Could not determine modules folder.')
+            else:
+                modules_path = pathlib.Path(self._core.modules).resolve()
+                print(f'Looking for modules in {modules_path}...')
+        except (TypeError, ValueError):
+            raise
+
+        # get all python file paths in the modules directory
+        modules = [module for module in modules_path.glob('*.py') if module.is_file()]
+        # for each python file path
+        for module in modules:
+            # get module spec from module name and path
+            spec = importlib.util.spec_from_file_location(module.stem, module.resolve())
+            # create the module from the spec
+            created_module = importlib.util.module_from_spec(spec)
+            # execute the created module
+            spec.loader.exec_module(created_module)
+            # get the name and class object for each class in the module
+            for module_name, module_class in inspect.getmembers(created_module, inspect.isclass):
+                print(module_class())
 
     async def process(self, message):
         # filter non-message objects
@@ -45,12 +85,11 @@ class Handler():
             # try to get the owner id from the config
             try:
                 # get the bot owner id
-                bot_owner_id = str(self._uxStore.owner)
+                bot_owner_id = str(self._core.owner)
             # if an error occurred retrieving the owner id
             except ValueError as valueError:
                 # set the bot owner id to None
                 bot_owner_id = None
-
             # if the members intent is available
             if discord.Intents.members:
                 # get the guild owner id
@@ -59,21 +98,31 @@ class Handler():
             else:
                 # set the guild owner id to None
                 server_owner_id = None
-
             # create user whitelist
             whitelist = [
                 bot_owner_id,
                 server_owner_id
             ]
-
             # if the message author is not in the whitelist
             if str(message.author.id) not in whitelist:
                 await message.channel.send('You are not permitted to use this functionality.')
                 raise ValueError(f'{message.author.id} is not a whitelisted user ID.')
+            # create empty list for messages to be added to
             messages = []
+            # for each message in the channel's history
             async for message in message.channel.history():
+                # add the message to the messages list
                 messages.append(message)
+            # get number of messages to be deleted
+            message_count = len(messages)
+            # delete every message in the messages list
             await message.channel.delete_messages(messages)
+            # send a summary message
+            summary_message = await message.channel.send(f'{message_count} messages deleted.')
+            # wait 3 seconds
+            await asyncio.sleep(10)
+            # delete the summary message
+            await summary_message.delete()            
 
         elif 'count' in message.content:
             count = await archiver.get_count()
@@ -140,5 +189,3 @@ class Handler():
             else:
                 await message.channel.send(attachment_url)
                 await message.channel.send(embed=embed)
-
-        archiver.close()
