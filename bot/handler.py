@@ -51,7 +51,8 @@ class Handler():
             spec.loader.exec_module(created_module)
             # get the name and class object for each class in the module
             for module_name, module_class in inspect.getmembers(created_module, inspect.isclass):
-                print(module_class())
+                # TODO: organize classes to be called/accessed on message send
+                pass 
 
     async def process(self, message):
         # filter non-message objects
