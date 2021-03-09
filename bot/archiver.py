@@ -144,11 +144,16 @@ class Archiver():
         # return the newest message id
         return newest_message_id
 
-    async def get_count(self):
+    async def get_count(self, *, user: discord.User = None):
         # assemble select statement
         select_statement = f'''
             SELECT * FROM CHANNEL{self._channel.id}
         '''
+        # if user is not none
+        if user is not None:
+            # add where clause
+            select_statement = ' '.join([select_statement, f'WHERE AUTHOR_ID = {user.id}'])
+
         # execute the select statement
         self._cursor.execute(select_statement)
         # get the length of the returned query
