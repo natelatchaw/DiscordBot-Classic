@@ -33,7 +33,7 @@ class Handler():
 
     def __del__(self):
         # for every channel archiver that was instantiated
-        for archiver in self._archivers:
+        for archiver in self._archivers.values():
             archiver.close()
 
     def load(self):
