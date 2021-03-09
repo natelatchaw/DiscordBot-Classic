@@ -235,10 +235,11 @@ class Archiver():
         self._cursor.execute(select_statement)
         # fetch all results
         entries = self._cursor.fetchall()
-        # if no entries are available
-        if entries.count == 0: raise ValueError("No entries available.")
         # filter out entries with empty attachment strings
         entries = [entry for entry in entries if entry[1]]
+        # if no entries are available
+        if len(entries) == 0:
+            raise ValueError("No entries available.")
         # select a random entry
         message_id, attachments = random.choice(entries)
         # attachments may be a CSV string with multiple URLs, split it and concatenate with newline

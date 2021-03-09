@@ -13,8 +13,14 @@ try:
     client = discord.Client(intents=discord.Intents.all())
     # initialize Core
     main = Core()
+
     # initialize Handler
     handler = Handler(client, main)
+
+    # initialize optionals to pass to handler
+    optionals: dict = {
+        '_core': main
+    }
 
     @client.event
     async def on_ready():
@@ -27,7 +33,7 @@ try:
         if not isinstance(message, discord.Message):
             raise TypeError('Received an object that is not a message.')
         # handle message
-        await handler.process(message)
+        await handler.process(message, optionals=optionals, archiver_key='_archiver')
 
     # try to start the bot client
     loop.run_until_complete(client.start(main.token))

@@ -37,12 +37,13 @@ class UXStore(Configuration):
         # try to get the entry from the config file
         try:
             prefix = self.get_key_value(self.sectionName, entry_name)
+            if prefix == '':
+                raise ValueError(f'The configuration entry for {entry_name} was blank.')
+            return prefix
         except ValueError as valueError:
             print(f'{valueError}\nA blank {entry_name} entry has been created in the {self.sectionName} section.')
             self.set_key_value(self.sectionName, entry_name, '')
             raise
-        if prefix == '':
-            raise ValueError(f'The configuration entry for {entry_name} was blank.')
     @prefix.setter
     def prefix(self, prefix):
         entry_name = 'prefix'
@@ -50,7 +51,7 @@ class UXStore(Configuration):
         if not (isinstance(prefix, str) and prefix.len == 1):
             raise TypeError('Prefix must be a single character string.')
         # add the UX settings pair to the UX section
-        self.set_key_value(self.sectionName, 'prefix', prefix)
+        self.set_key_value(self.sectionName, entry_name, prefix)
 
     @property
     def owner(self):
@@ -78,7 +79,7 @@ class UXStore(Configuration):
         try:
             owner = int(owner)
         # if entry cannot be parsed to an integer
-        except NameError as nameError:
+        except NameError:
             raise TypeError(f'Configuration entry for {entry_name} cannot be parsed to an integer.')
         # add the UX settings pair to the UX section
         self.set_key_value(self.sectionName, entry_name, owner)
@@ -103,7 +104,7 @@ class UXStore(Configuration):
                 # create the directory if it doesn't exist
                 path.mkdir(parents=True, exist_ok=True)
             return modules
-        except (ValueError, TypeError) as error:
+        except (ValueError, TypeError):
             raise
     @modules.setter
     def modules(self, modules):
@@ -113,6 +114,6 @@ class UXStore(Configuration):
         # if the path doesn't exist
         if not path.exists():
             # create the directory if it doesn't exist
-            path.mkdir(parents=true, exist_ok=true)
+            path.mkdir(parents=True, exist_ok=True)
         # add the modules path to the UX section
         self.set_key_value(self.sectionName, entry_name, modules)

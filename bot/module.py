@@ -1,8 +1,10 @@
 import types
+import asyncio
 import inspect
 from inspect import Signature, BoundArguments
+from .core import Core
 
-class Module():
+class ModuleInterface():
 
     def __init__(self, name: str, obj: object):
         # get the signature of the object's initializer
@@ -63,8 +65,9 @@ class Module():
         except AttributeError:
             raise InvalidCommandError(self.name, command_name)
 
-    def run_command(self, command_name: str, arguments: BoundArguments):
+    async def run_command(self, command_name: str, arguments: BoundArguments):
         """
+        Run the command given the name and the arguments.
         """
         try:
             # get the command's callable
@@ -86,12 +89,12 @@ class Module():
 
         # not supported yet
         if Command.isAsynchronousMethod(command):
-            raise NotImplementedError()
+            await command(*arguments.args, **arguments.kwargs)
     
 
 
 class ModuleError(Exception):
-    """Base class for command module exceptions."""
+    """Base exception class for command module exceptions."""
     pass
 
 class InvalidInitializerError(ModuleError):

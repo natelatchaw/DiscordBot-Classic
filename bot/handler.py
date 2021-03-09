@@ -8,7 +8,7 @@ import discord
 import requests
 from .archiver import Archiver
 from .core import Core
-from .module import Module, InvalidInitializerError
+from .module import ModuleInterface, InvalidInitializerError, InvalidCommandError
 
 class Handler():
     def __init__(self, client, core):
@@ -27,7 +27,7 @@ class Handler():
         # map command names to module names
         self._commands: dict(str, str) = dict()
         # map module names to modules
-        self._modules: dict(str, Module) = dict()
+        self._modules: dict(str, ModuleInterface) = dict()
 
         self.load()
 
@@ -59,7 +59,7 @@ class Handler():
             # get the name and class object for each class in the module
             for module_name, module_class in inspect.getmembers(created_module, inspect.isclass):
                 try:
-                    command_module = Module(module_name, module_class)
+                    command_module = ModuleInterface(module_name, module_class)
                     self.add(command_module)
                 except InvalidInitializerError as invalidInitializerError:
                     print(invalidInitializerError)
@@ -68,7 +68,7 @@ class Handler():
         for (command, module) in self._commands.items():
             print(f'{module}.{command}')
 
-    def add(self, module: Module):
+    def add(self, module: ModuleInterface):
         # for each command's name in the command module
         for command_name in module.commands.keys():
             # TODO: command_name not guaranteed to be unique across modules, overwriting is possible here
@@ -77,22 +77,18 @@ class Handler():
         # add the module-name-to-module mapping
         self._modules[module.name] = module
 
-    def call(self, command_name: str):
-        module_name = self._commands[command_name]
-        module: Module = self._modules[module_name]
-        command = module.get_command_callable(command_name)
-        command()        
+    def get(self, command_name: str) -> ModuleInterface:
+        try:
+            module_name = self._commands[command_name]
+        except KeyError:
+            raise CommandLookupError(command_name)
+        try:
+            module: ModuleInterface = self._modules[module_name]
+        except KeyError:
+            raise ModuleLookupError(module_name)
+        return module
 
-    async def process(self, message: discord.Message):
-
-        # filter non-message objects
-        if not isinstance(message, discord.Message):
-            raise TypeError(f'Cannot process object that is not of type {type(discord.Message)}')
-
-        # TODO: input filtering and error handling
-        # call method directly
-        self.call(message.content)
-
+    async def archive(self, message: discord.Message) -> Archiver:
         # if an archiver instance hasn't been created for the current channel
         if message.channel.id not in self._archivers:
             # create an archiver instance
@@ -110,117 +106,97 @@ class Handler():
         await archiver.create()
         # insert the current message into the archiver
         await archiver.insert(message)
+        # return the archiver instance
+        return archiver
 
-        # if the message doesn't ping the bot (i.e., is not a command)
-        if not self._client.user in message.mentions:
-            # print the message
-            print(message.content)
+
+    async def process(self, message: discord.Message, *, optionals: dict = dict(), archiver_key: str = None):
+
+        # filter non-message objects
+        if not isinstance(message, discord.Message):
+            raise TypeError(f'Cannot process object that is not of type {type(discord.Message)}')
+
+        # archive the message
+        archiver = await self.archive(message)
+        # if an archive key was provided
+        if archiver_key:
+            # insert the archiver into optionals dictionary
+            optionals[archiver_key] = archiver
+
+        # try to parse a command from the message
+        try:
+            self._core.prefix
+            # if the message doesn't start with the prefix
+            if not message.clean_content.startswith(self._core.prefix):
+                raise TypeError(f'Message does not begin with prefix ({self._core.prefix})')
             
-        elif 'delete' in message.content:
-            # try to get the owner id from the config
+            # get the cleaned content of the message
+            content = message.clean_content
+            # split by hyphen delimiter and strip whitespace
+            arguments = [part.strip() for part in content.split('-')]
+            # pop the first item as the command and strip the prefix
+            command_name = arguments.pop(0).strip(self._core.prefix)
+            # split each arg into keyword and value tuple
+            arguments = [tuple(argument.split(maxsplit=1)) for argument in arguments]
+            # convert list of tuples to dictionary
+            kwargs = { argument[0] : argument[1] for argument in arguments if len(argument) == 2 }
+
+            # add message to parameter arguments
+            args = list()
+            args.append(message)
+
             try:
-                # get the bot owner id
-                bot_owner_id = str(self._core.owner)
-            # if an error occurred retrieving the owner id
-            except ValueError as valueError:
-                # set the bot owner id to None
-                bot_owner_id = None
-            # if the members intent is available
-            if discord.Intents.members:
-                # get the guild owner id
-                server_owner_id = str(message.guild.owner.id)
-            # otherwise
-            else:
-                # set the guild owner id to None
-                server_owner_id = None
-            # create user whitelist
-            whitelist = [
-                bot_owner_id,
-                server_owner_id
-            ]
-            # if the message author is not in the whitelist
-            if str(message.author.id) not in whitelist:
-                await message.channel.send('You are not permitted to use this functionality.')
-                raise ValueError(f'{message.author.id} is not a whitelisted user ID.')
-            # create empty list for messages to be added to
-            messages = []
-            # for each message in the channel's history
-            async for message in message.channel.history():
-                # add the message to the messages list
-                messages.append(message)
-            # get number of messages to be deleted
-            message_count = len(messages)
-            # delete every message in the messages list
-            await message.channel.delete_messages(messages)
-            # send a summary message
-            summary_message = await message.channel.send(f'{message_count} messages deleted.')
-            # wait 3 seconds
-            await asyncio.sleep(10)
-            # delete the summary message
-            await summary_message.delete()            
-
-        elif 'count' in message.content:
-            count = await archiver.get_count()
-            await message.channel.send(f'{count} messages archived in {message.channel.mention}')
-
-        elif 'fetch' in message.content:
-            message_reference = await message.channel.send(f'Beginning download...')
-            # record the time before fetch is run
-            start_time = datetime.now()
-            await archiver.fetch()
-            # record the time after fetch is run
-            end_time = datetime.now()
-            # calculate the time elapsed
-            delta_time = end_time - start_time
-            await message_reference.edit(content=f'{message.channel.mention} archive updated in {round(delta_time.total_seconds(), 1)}s')
-
-        elif 'last year' in message.content:
-            # try to get a message id from last year
-            try:
-                message_id, content = await archiver.get_last_year()
-            # if a message could not be found
-            except ValueError as valueError:
-                # send the content of the error
-                await message.channel.send(valueError)
-                return
-            # fetch the message from the channel via message id
-            message = await message.channel.fetch_message(message_id)
-            # create an embed containing the message's content
-            embed = discord.Embed()
-            embed.set_author(name=message.author.name, url=message.jump_url, icon_url=message.author.avatar_url)
-            embed.title = message.content
-            embed.timestamp = message.created_at
-            # send the embed
-            await message.channel.send(embed=embed)
+                # try to get the relevant module
+                module = self.get(command_name)
+                # get the command's command signature
+                command_signature = module.get_command_signature(command_name)
                 
-        elif 'random' in message.content:
-            message_id, attachment_url = await archiver.get_random_attachment_message()
-            message = await message.channel.fetch_message(message_id)
+                for optional_key, optional_value in optionals.items():
+                    if optional_key in command_signature.parameters.keys():
+                        kwargs[optional_key] = optional_value
 
-            # check if the url's destination if actually a file
-            headResponse = requests.head(attachment_url, allow_redirects=True)
-            contentType = headResponse.headers.get('content-type')
-            isImage = 'image' in contentType.lower()
-            print(isImage)
+                # bind the processed arguments to the command signature
+                bound_arguments = command_signature.bind(*args, **kwargs)
+                # run the command with the assembled signature
+                await module.run_command(command_name, bound_arguments)
 
-            if isImage:
-                print(attachment_url)
-                getResponse = requests.get(attachment_url, allow_redirects=True)
-                print(getResponse.history)
-                attachment_url = getResponse.url
-                print(attachment_url)
+            except HandlerError as handlerError:
+                await message.channel.send(handlerError)
 
-            embed = discord.Embed()
-            embed.set_author(name=message.author.name, url=message.jump_url, icon_url=message.author.avatar_url)
-            embed.title = message.jump_url
-            embed.timestamp = message.created_at
+            except TypeError as typeError:
+                await message.channel.send(f'Error in {command_name} command: {typeError}')
 
-            # if an Image
-            if isImage:
-                embed.set_image(url=attachment_url)
-                await message.channel.send(embed=embed)
+            except InvalidCommandError as invalidCommandError:
+                await message.channel.send(invalidCommandError)
+        
+        # if a valid command could not be parsed from the message
+        except TypeError:
+            # fallback to console message log
+            print(message.clean_content)
+            
 
-            # if not an Image
-            else:
-                await message.channel.send(attachment_url)
-                await message.channel.send(embed=embed)
+class HandlerError(Exception):
+    """Base exception class for the Handler class."""
+    pass
+
+class LookupError(HandlerError):
+    """Base exception class for command lookup-related errors."""
+    pass
+
+class CommandLookupError(LookupError):
+    """Raised when the commands dict returns a KeyError when looking up a command name."""
+
+    def __init__(self, command_name):
+        self.command_name = command_name
+
+    def __str__(self):
+        return f'Could not find specified command: {self.command_name}.'
+
+class ModuleLookupError(LookupError):
+    """Raised when the moudles dict returns a KeyError when looking up a module name."""
+
+    def __init__(self, module_name):
+        self.module_name = module_name
+
+    def __str__(self):
+        return f'Could not find specified module: {self.module_name}.'
