@@ -1,12 +1,14 @@
 import asyncio
 import pathlib
 import inspect
+import collections
 import importlib.util
 from datetime import datetime
 import discord
 import requests
 from .archiver import Archiver
 from .core import Core
+from .module import Module, InvalidInitializerError
 
 class Handler():
     def __init__(self, client, core):
@@ -21,6 +23,11 @@ class Handler():
             self._core = core
         # create dictionary of archiver objects
         self._archivers = dict()
+        
+        # map command names to module names
+        self._commands: dict(str, str) = dict()
+        # map module names to modules
+        self._modules: dict(str, Module) = dict()
 
         self.load()
 
@@ -51,13 +58,40 @@ class Handler():
             spec.loader.exec_module(created_module)
             # get the name and class object for each class in the module
             for module_name, module_class in inspect.getmembers(created_module, inspect.isclass):
-                # TODO: organize classes to be called/accessed on message send
-                pass 
+                try:
+                    command_module = Module(module_name, module_class)
+                    self.add(command_module)
+                except InvalidInitializerError as invalidInitializerError:
+                    print(invalidInitializerError)
 
-    async def process(self, message):
+        
+        for (command, module) in self._commands.items():
+            print(f'{module}.{command}')
+
+    def add(self, module: Module):
+        # for each command's name in the command module
+        for command_name in module.commands.keys():
+            # TODO: command_name not guaranteed to be unique across modules, overwriting is possible here
+            # add the command-to-module mapping
+            self._commands[command_name] = module.name
+        # add the module-name-to-module mapping
+        self._modules[module.name] = module
+
+    def call(self, command_name: str):
+        module_name = self._commands[command_name]
+        module: Module = self._modules[module_name]
+        command = module.get_command_callable(command_name)
+        command()        
+
+    async def process(self, message: discord.Message):
+
         # filter non-message objects
         if not isinstance(message, discord.Message):
             raise TypeError(f'Cannot process object that is not of type {type(discord.Message)}')
+
+        # TODO: input filtering and error handling
+        # call method directly
+        self.call(message.content)
 
         # if an archiver instance hasn't been created for the current channel
         if message.channel.id not in self._archivers:
