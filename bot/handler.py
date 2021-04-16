@@ -151,8 +151,11 @@ class Handler():
                 # get the command's command signature
                 command_signature = module.get_command_signature(command_name)
                 
+                # for each optional keyvalue pair passed in through contructor
                 for optional_key, optional_value in optionals.items():
+                    # if the command's signature contains a parameter matching the optional key
                     if optional_key in command_signature.parameters.keys():
+                        # add the correlated optional value to kwargs
                         kwargs[optional_key] = optional_value
 
                 # bind the processed arguments to the command signature
