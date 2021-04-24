@@ -3,9 +3,7 @@ import pathlib
 import inspect
 import collections
 import importlib.util
-from datetime import datetime
 import discord
-import requests
 from .archiver import Archiver
 from .core import Core
 from .module import ModuleInterface, InvalidInitializerError, InvalidCommandError
@@ -63,10 +61,6 @@ class Handler():
                     self.add(command_module)
                 except InvalidInitializerError as invalidInitializerError:
                     print(invalidInitializerError)
-
-        
-        for (command, module) in self._commands.items():
-            print(f'{module}.{command}')
 
     def add(self, module: ModuleInterface):
         # for each command's name in the command module

@@ -176,25 +176,19 @@ class Archiver():
         message_id, author_id, content = entries.pop()
         return message_id, author_id, content
 
-
-    async def get_last_year(self):
-        # get the current datetime in UTC
-        now = datetime.now(timezone.utc)
-
-        # get the datetime for the beginning of today
-        today = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        # get the datetime for the beginning of tomorrow
-        tomorrow = today.replace(day=(today.day+1))
-
-        # get the snowflake for the beginning of today, but one year ago
-        today_snowflake = Snowflake.from_timestamp(today.replace(year=(today.year-1)))
-        # get the snowflake for the beginning of tomorrow, but one year ago
-        tomorrow_snowflake = Snowflake.from_timestamp(tomorrow.replace(year=(tomorrow.year-1)))
-
+    async def get_message_from_date(self, month: int, day: int, year: int, tzinfo: timezone = timezone.utc):
+        # get starting timestamp
+        start_timestamp = datetime(year, month, day, 0, 0, 0, tzinfo=tzinfo)
+        # get ending timestamp
+        end_timestamp = datetime(year, month, day, 23, 59, 59, tzinfo=tzinfo)
+        # get starting snowflake
+        start_snowflake = Snowflake.from_timestamp(start_timestamp)
+        # get ending snowflake
+        end_snowflake = Snowflake.from_timestamp(end_timestamp)
         # assemble select statement
         select_statement = f'''
             SELECT MESSAGE_ID, CONTENT FROM CHANNEL{self._channel.id}
-            WHERE MESSAGE_ID BETWEEN {today_snowflake} AND {tomorrow_snowflake}
+            WHERE MESSAGE_ID BETWEEN {start_snowflake} AND {end_snowflake}
         '''
         # execute the SELECT statement
         self._cursor.execute(select_statement)
@@ -207,7 +201,6 @@ class Archiver():
         # select a random entry
         message_id, content = random.choice(entries)
         return message_id, content
-        
 
     async def get_random_youtube_link(self):
         select_statement = f'''
