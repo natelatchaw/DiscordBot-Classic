@@ -53,14 +53,14 @@ class Core():
         except ValueError:
             self._tokenStore.mode = ''
             missingMode = ' '.join([
-                f'No token {entry_name} entry found.',
-                f'An entry has been created for you to insert the token {entry_name}.'
+                f'No token {entry_name} selector was found in the config.',
+                f'An selector entry has been created for you to specify the token {entry_name}.'
             ])
             raise ValueError(missingMode)
         except TypeError:
             emptyToken = ' '.join([
-                f'The token {entry_name} entry contained an empty string.',
-                f'Please insert a token {entry_name}.'
+                f'The token {entry_name} selector in the config contained an empty string.',
+                f'Please specify a token {entry_name}.'
             ])
             raise TypeError(emptyToken)
     @mode.setter
