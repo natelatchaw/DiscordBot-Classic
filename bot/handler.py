@@ -7,9 +7,10 @@ import discord
 from .archiver import Archiver
 from .core import Core
 from .module import ModuleInterface, InvalidInitializerError, InvalidCommandError
+from .logging.logger import Logger
 
 class Handler():
-    def __init__(self, client, core):
+    def __init__(self, client: discord.Client, core: Core):
         if not isinstance(client, discord.Client):
             raise TypeError('Invalid client parameter passed.')
         else:

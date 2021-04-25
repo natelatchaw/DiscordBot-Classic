@@ -1,11 +1,16 @@
 import asyncio
+from datetime import datetime
 import discord
 import discord.ext
 from bot.core import Core
 from bot.handler import Handler
 from bot.archiver import Archiver
+from bot.logging.logger import Logger
 
 try:
+    # get the time the bot was initialized
+    instantiated_time = datetime.now()
+
     # get the event loop
     loop = asyncio.get_event_loop()
 
@@ -26,6 +31,9 @@ try:
     async def on_ready():
         # startup tasks
         print(f'{client.user.name} loaded in {main.mode} mode.')
+        delta_time = datetime.now() - instantiated_time
+        for guild in client.guilds:
+            await Logger.print(main, guild, f'Bot client {client.user.mention} initialized in {round(delta_time.total_seconds(), 1)}s')
 
     @client.event
     async def on_message(message):
@@ -40,7 +48,7 @@ try:
 # if TypeError or ValueError occurs
 except (TypeError, ValueError) as error:
     print(error)
-    raise
+    exit()
 # if program is interrupted in console
 except KeyboardInterrupt as keyboardInterrupt:
     print(f'KeyboardInterrupt event occurred: {keyboardInterrupt}')

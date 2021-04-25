@@ -18,29 +18,30 @@ class Core():
 
     @property
     def owner(self):
-        return self._uxStore.owner
+        key = 'owner'
+        try:
+            return self._uxStore.owner
+        except ValueError as valueError:
+            invalidEntry = '\n'.join([
+                str(valueError),
+                f'Please insert a valid {key} id in the config file.'
+            ])
+            raise ValueError(invalidEntry)
     @owner.setter
-    def owner(self, owner):
-        self._uxStore.owner = owner
+    def owner(self, owner_id: int):
+        self._uxStore.owner = owner_id
 
     @property
     def modules(self):
         entry_name = 'modules'
         try:
             return self._uxStore.modules
-        except ValueError:
-            self._uxStore.set_key_value(self._uxStore.sectionName, entry_name, '')
-            missingModules = ' '.join([
-                f'No {entry_name} entry found.',
-                f'An entry has been created for you to insert the {entry_name} path.'
+        except ValueError as valueError:
+            invalidEntry = '\n'.join([
+                str(valueError),
+                f'Please insert a valid {entry_name} path in the config file.'
             ])
-            raise ValueError(missingModules)
-        except TypeError:
-            emptyToken = ' '.join([
-                f'The {entry_name} entry contained an empty string.',
-                f'Please insert a {entry_name} path.'
-            ])
-            raise TypeError(emptyToken)
+            raise ValueError(invalidEntry)
     @modules.setter
     def modules(self, modules):
         self._uxStore.modules = modules
@@ -89,3 +90,18 @@ class Core():
     @token.setter
     def token(self, token):
         self._tokenStore.add_token(self.mode, token)
+
+    @property
+    def logging_channel(self):
+        entry_name = 'logging_channel'
+        try:
+            return self._uxStore.logging_channel
+        except ValueError as valueError:
+            invalidEntry = '\n'.join([
+                str(valueError),
+                f'Please insert a valid {entry_name} id in the config file.'
+            ])
+            raise ValueError(invalidEntry)
+    @logging_channel.setter
+    def logging_channel(self, channel_id: int):
+        self._uxStore.logging_channel = channel_id

@@ -9,7 +9,7 @@ from .static.snowflake import Snowflake
 
 class Archiver():
 
-    def __init__(self, channel):
+    def __init__(self, channel: discord.TextChannel):
         if isinstance(channel, discord.TextChannel):
             self._channel = channel
         else:
