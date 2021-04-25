@@ -31,9 +31,9 @@ try:
     async def on_ready():
         # startup tasks
         print(f'{client.user.name} loaded in {main.mode} mode.')
-        delta_time = datetime.now() - instantiated_time
+        startup_message = f'Bot client {client.user.mention} initialized in {round((datetime.now() - instantiated_time).total_seconds(), 1)}s'
         for guild in client.guilds:
-            await Logger.print(main, guild, f'Bot client {client.user.mention} initialized in {round(delta_time.total_seconds(), 1)}s')
+            await Logger.print(main, guild, startup_message)
 
     @client.event
     async def on_message(message):
@@ -61,5 +61,9 @@ except:
     raise
 # terminate gracefully
 finally:
+    # shutdown tasks
+    shutdown_message = f'Bot client {client.user.mention} shutting down. Runtime: {round((datetime.now() - instantiated_time).total_seconds(), 1)}s'
+    for guild in client.guilds:
+        await Logger.print(main, guild, shutdown_message)
     loop.run_until_complete(client.logout())
     loop.run_until_complete(client.close())
