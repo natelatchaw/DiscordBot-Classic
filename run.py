@@ -7,6 +7,16 @@ from bot.handler import Handler
 from bot.archiver import Archiver
 from bot.logging.logger import Logger
 
+async def print_login_message():
+    startup_message = f'Bot client {client.user.mention} initialized in {round((datetime.now() - instantiated_time).total_seconds(), 1)}s'
+    for guild in client.guilds:
+        await Logger.print(main, guild, startup_message)
+
+async def print_logout_message():
+    shutdown_message = f'Bot client {client.user.mention} shutting down. Runtime: {round((datetime.now() - instantiated_time).total_seconds(), 1)}s'
+    for guild in client.guilds:
+        await Logger.print(main, guild, shutdown_message)
+
 try:
     # get the time the bot was initialized
     instantiated_time = datetime.now()
@@ -31,9 +41,7 @@ try:
     async def on_ready():
         # startup tasks
         print(f'{client.user.name} loaded in {main.mode} mode.')
-        startup_message = f'Bot client {client.user.mention} initialized in {round((datetime.now() - instantiated_time).total_seconds(), 1)}s'
-        for guild in client.guilds:
-            await Logger.print(main, guild, startup_message)
+        await print_login_message()
 
     @client.event
     async def on_message(message):
@@ -48,7 +56,6 @@ try:
 # if TypeError or ValueError occurs
 except (TypeError, ValueError) as error:
     print(error)
-    exit()
 # if program is interrupted in console
 except KeyboardInterrupt as keyboardInterrupt:
     print(f'KeyboardInterrupt event occurred: {keyboardInterrupt}')
@@ -62,8 +69,6 @@ except:
 # terminate gracefully
 finally:
     # shutdown tasks
-    shutdown_message = f'Bot client {client.user.mention} shutting down. Runtime: {round((datetime.now() - instantiated_time).total_seconds(), 1)}s'
-    for guild in client.guilds:
-        await Logger.print(main, guild, shutdown_message)
+    loop.run_until_complete(print_logout_message())
     loop.run_until_complete(client.logout())
     loop.run_until_complete(client.close())
