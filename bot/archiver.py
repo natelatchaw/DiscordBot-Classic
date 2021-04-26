@@ -85,6 +85,14 @@ class Archiver():
         except sqlite3.IntegrityError as integrityError:
             print(f'Message {message.id}: {integrityError.args}')
 
+    async def select(self):
+        select_statement = f'''
+            SELECT MESSAGE_ID FROM CHANNEL{self._channel.id}
+        '''
+        self._cursor.execute(select_statement)
+        # fetch the all rows
+        return self._cursor.fetchall()
+
     async def fetch(self, limit=None):
         # get message id of oldest message in database
         oldest_message_id = await self.get_oldest() or None
@@ -143,6 +151,21 @@ class Archiver():
             newest_message_id = None
         # return the newest message id
         return newest_message_id
+
+    async def get_messages(self, *, member: discord.User = None):
+        # assemble select statement
+        select_statement = f'''
+            SELECT * FROM CHANNEL{self._channel.id}
+        '''
+        # if member is not none
+        if member is not None:
+            # add where clause
+            select_statement = ' '.join([select_statement, f'WHERE AUTHOR_ID = {member.id}'])
+
+        # execute the select statement
+        self._cursor.execute(select_statement)
+        # get the length of the returned query
+        return self._cursor.fetchall()
 
     async def get_count(self, *, member: discord.User = None):
         # assemble select statement
