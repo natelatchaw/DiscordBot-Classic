@@ -8,6 +8,9 @@ config.ini
 data/
 *.db
 
+# cache
+cache/
+
 # modules
 modules/
 modules/*
