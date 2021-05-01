@@ -1,7 +1,8 @@
 from configparser import DuplicateSectionError
-from bot.configuration import Configuration
+from bot.configuration.configuration import Configuration
 
 class TokenStore(Configuration):
+    
     def __init__(self):
         super().__init__()
         # define section name
