@@ -4,6 +4,7 @@ import inspect
 import collections
 import importlib.util
 import discord
+import re
 from bot.archiver import Archiver
 from bot.core import Core
 from bot.logger import Logger
@@ -104,7 +105,6 @@ class Handler():
         # return the archiver instance
         return archiver
 
-
     async def process(self, message: discord.Message, *, optionals: dict=dict(), archiver_key: str=None):
 
         # filter non-message objects
@@ -116,23 +116,42 @@ class Handler():
             # insert the archiver into optionals dictionary
             optionals[archiver_key] = await self.archive(message)
 
+        print(message.content)
+        for user in message.mentions:
+            print(user)
+
+
         # try to parse a command from the message
         try:
-            self._core.prefix
-            # if the message doesn't start with the prefix
-            if not message.clean_content.startswith(self._core.prefix):
+            command_prefix: str = self._core.prefix
+
+            # get command from message content
+            command_match: re.Match = re.match(rf'^{command_prefix}[\w]+', message.clean_content)
+            # if the prefixed command could not be found at the beginning of the message
+            if not command_match:
                 raise TypeError(f'Message does not begin with prefix ({self._core.prefix})')
-            
-            # get the cleaned content of the message
-            content = message.clean_content
-            # split by hyphen delimiter and strip whitespace
-            arguments = [part.strip() for part in content.split('-')]
-            # pop the first item as the command and strip the prefix
-            command_name = arguments.pop(0).strip(self._core.prefix)
-            # split each arg into keyword and value tuple
-            arguments = [tuple(argument.split(maxsplit=1)) for argument in arguments]
+            # get the prefixed command string from the match
+            prefixed_command: str = command_match.group()
+            # remove prefix from command
+            command_name: str = re.sub(rf'^{command_prefix}', '', prefixed_command)
+
+            parameter_prefix = '-'
+            # compile regex for parameter/argument pairs
+            parameter_argument_pair: re.Pattern = re.compile(rf'{parameter_prefix}[\w]+[\s]+[\w\d\s<!@>]+\b')
+            prefixed_parameter: re.Pattern = re.compile(rf'^{parameter_prefix}')
+
+            # find all substrings that start with the parameter prefix and have arguments
+            parameter_matches = re.findall(parameter_argument_pair, message.content)
+            # strip the parameter prefix from each parameter/argument combo
+            parameter_matches = [re.sub(prefixed_parameter, '', parameter_match) for parameter_match in parameter_matches]
+            # strip any mention strings down to the author's id
+            parameter_matches = [re.sub(r'<@!', '', parameter_match) for parameter_match in parameter_matches]
+            # split the argument/parameter combo into tuple(parameter, argument)
+            arguments = [tuple(parameter_match.split(maxsplit=1)) for parameter_match in parameter_matches]
             # convert list of tuples to dictionary
-            kwargs = { argument[0] : argument[1] for argument in arguments if len(argument) == 2 }
+            kwargs = { argument[0] : argument[1] for argument in arguments }
+
+            print(kwargs)
 
             # add message to parameter arguments
             args = list()
