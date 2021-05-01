@@ -1,6 +1,6 @@
 import pathlib
 from configparser import DuplicateSectionError
-from .configuration import Configuration
+from bot.configuration import Configuration
 
 class UXStore(Configuration):
     def __init__(self):

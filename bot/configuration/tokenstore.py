@@ -1,5 +1,5 @@
 from configparser import DuplicateSectionError
-from .configuration import Configuration
+from bot.configuration import Configuration
 
 class TokenStore(Configuration):
     def __init__(self):

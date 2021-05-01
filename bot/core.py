@@ -1,8 +1,8 @@
 import os
 import discord
 import inspect
-from .configuration.tokenstore import TokenStore
-from .configuration.uxstore import UXStore
+from bot.configuration.tokenstore import TokenStore
+from bot.configuration.uxstore import UXStore
 
 class Core():
     def __init__(self):

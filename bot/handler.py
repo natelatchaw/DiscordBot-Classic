@@ -4,10 +4,10 @@ import inspect
 import collections
 import importlib.util
 import discord
-from .archiver import Archiver
-from .core import Core
-from .module import ModuleInterface, InvalidInitializerError, InvalidCommandError
-from .logging.logger import Logger
+from bot.archiver import Archiver
+from bot.core import Core
+from bot.logger import Logger
+from bot.module import ModuleInterface, InvalidInitializerError, InvalidCommandError
 
 class Handler():
     def __init__(self, client: discord.Client, core: Core):
@@ -105,18 +105,16 @@ class Handler():
         return archiver
 
 
-    async def process(self, message: discord.Message, *, optionals: dict = dict(), archiver_key: str = None):
+    async def process(self, message: discord.Message, *, optionals: dict=dict(), archiver_key: str=None):
 
         # filter non-message objects
         if not isinstance(message, discord.Message):
             raise TypeError(f'Cannot process object that is not of type {type(discord.Message)}')
 
-        # archive the message
-        archiver = await self.archive(message)
         # if an archive key was provided
         if archiver_key:
             # insert the archiver into optionals dictionary
-            optionals[archiver_key] = archiver
+            optionals[archiver_key] = await self.archive(message)
 
         # try to parse a command from the message
         try:

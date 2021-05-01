@@ -2,7 +2,7 @@ import types
 import asyncio
 import inspect
 from inspect import Signature, BoundArguments
-from .core import Core
+from bot.core import Core
 
 class ModuleInterface():
 
