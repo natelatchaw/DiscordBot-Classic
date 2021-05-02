@@ -116,11 +116,6 @@ class Handler():
             # insert the archiver into optionals dictionary
             optionals[archiver_key] = await self.archive(message)
 
-        print(message.content)
-        for user in message.mentions:
-            print(user)
-
-
         # try to parse a command from the message
         try:
             command_prefix: str = self._core.prefix
@@ -150,8 +145,6 @@ class Handler():
             arguments = [tuple(parameter_match.split(maxsplit=1)) for parameter_match in parameter_matches]
             # convert list of tuples to dictionary
             kwargs = { argument[0] : argument[1] for argument in arguments }
-
-            print(kwargs)
 
             # add message to parameter arguments
             args = list()
