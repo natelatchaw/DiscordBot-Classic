@@ -20,8 +20,10 @@ class ModuleInterface():
         self.instance = obj()
         # instantiate commands dictionary
         self.commands = dict()
-        # iterate over all methods in the module
-        for name, member in inspect.getmembers(self.instance, inspect.ismethod):
+        # get each method member in the class instance
+        members = [member for member in inspect.getmembers(self.instance, inspect.ismethod)]
+        # iterate over all methods in the class instance
+        for name, member in members:
             # if method is a dunder method
             if name.startswith('__'):
                 pass

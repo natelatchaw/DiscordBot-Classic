@@ -94,7 +94,7 @@ class Configuration():
                 raise ValueError(f'Value for {key} is empty.')
             # parse the value to an integer or raise ValueError
             return int(value)
-        except ValueError as error:
+        except ValueError:
             raise
 
     def set_integer(self, section: str, key: str, value: int):
@@ -173,7 +173,7 @@ class Configuration():
             if not value:
                 raise ValueError(f'Entry for {key} is empty')
             return value
-        except ValueError as error:
+        except ValueError:
             raise
 
     def set_string(self, section: str, key: str, value: str):
