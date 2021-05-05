@@ -53,7 +53,7 @@ try:
             '_logger': Logger(main, message.guild)
         }
         # handle message
-        await handler.process(message, optionals=optionals, archiver_key='_archiver')
+        await handler.process(message, optionals=optionals, archiver_key='_archiver', modules_key='_modules')
 
     # try to start the bot client
     loop.run_until_complete(client.start(main.token))

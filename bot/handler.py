@@ -25,9 +25,9 @@ class Handler():
         self._archivers = dict()
         
         # map command names to module names
-        self._commands: dict(str, str) = dict()
+        self._commands: dict[str, str] = dict()
         # map module names to modules
-        self._modules: dict(str, ModuleInterface) = dict()
+        self._modules: dict[str, ModuleInterface] = dict()
 
         self.load()
 
@@ -107,7 +107,7 @@ class Handler():
         # return the archiver instance
         return archiver
 
-    async def process(self, message: discord.Message, *, optionals: dict=dict(), archiver_key: str=None):
+    async def process(self, message: discord.Message, *, optionals: dict=dict(), archiver_key: str=None, modules_key: str=None):
 
         # filter non-message objects
         if not isinstance(message, discord.Message):
@@ -117,6 +117,11 @@ class Handler():
         if archiver_key:
             # insert the archiver into optionals dictionary
             optionals[archiver_key] = await self.archive(message)
+        
+        # if a modules key was provided
+        if modules_key:
+            # insert the modules dict into optionals dictionary
+            optionals[modules_key] = self._modules
 
         # try to parse a command from the message
         try:

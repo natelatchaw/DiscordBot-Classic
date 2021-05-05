@@ -3,6 +3,7 @@ import asyncio
 import inspect
 from inspect import Signature, BoundArguments
 from bot.core import Core
+from bot.command import CommandInterface
 
 class ModuleInterface():
 
@@ -19,7 +20,7 @@ class ModuleInterface():
         # instantiate obj and store
         self.instance = obj()
         # instantiate commands dictionary
-        self.commands = dict()
+        self.commands: dict[str, Signature] = dict()
         # get each method member in the class instance
         members = [member for member in inspect.getmembers(self.instance, inspect.ismethod)]
         # iterate over all methods in the class instance
@@ -30,7 +31,9 @@ class ModuleInterface():
             # otherwise
             else:
                 # insert name, signature pair into commands dictionary
-                self.commands[name] = inspect.signature(member)
+                self.commands[name] = CommandInterface(name, member)
+        # get the docstring for the class
+        self.doc = obj.__doc__
 
         print(f'Loaded {len(self.commands)} commands from {self.name} module.')
 
@@ -48,7 +51,8 @@ class ModuleInterface():
         """
         # try to get the signature from the commands dictionary
         try:
-            return self.commands[command_name]
+            command: CommandInterface = self.commands[command_name]
+            return command.signature
         # if the module doesn't contain a command named 'command_name'
         except KeyError:
             raise InvalidCommandError(self.name, command_name)
