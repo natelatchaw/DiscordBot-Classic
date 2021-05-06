@@ -31,16 +31,16 @@ try:
     # initialize client object
     client = discord.Client(intents=discord.Intents.all())
     # initialize Core
-    main = Core()
+    core = Core()
 
     # initialize Handler
-    handler = Handler(client, main)
+    handler = Handler(core)
 
     @client.event
     async def on_ready():
         # startup tasks
-        print(f'{client.user.name} loaded in {main.mode} mode.')
-        await print_login_message(main)
+        print(f'{client.user.name} loaded in {core.mode} mode.')
+        await print_login_message(core)
 
     @client.event
     async def on_message(message):
@@ -49,14 +49,20 @@ try:
             raise TypeError('Received an object that is not a message.')
         # initialize optionals to pass to handler
         optionals: dict = {
-            '_core': main,
-            '_logger': Logger(main, message.guild)
+            '_message': message,
+            '_core': core,
+            '_archiver': handler.archive(message),
+            '_logger': Logger(core, message.guild),
+            '_modules': handler._modules
         }
-        # handle message
-        await handler.process(message, optionals=optionals, archiver_key='_archiver', modules_key='_modules')
+        try:
+            # handle message
+            await handler.process(message.content, optionals=optionals, archiver_key='_archiver', modules_key='_modules')
+        except Exception as exception:
+            await message.channel.send(exception)
 
     # try to start the bot client
-    loop.run_until_complete(client.start(main.token))
+    loop.run_until_complete(client.start(core.token))
 # if TypeError or ValueError occurs
 except (TypeError, ValueError) as error:
     print(error)
@@ -73,6 +79,6 @@ except:
 # terminate gracefully
 finally:
     # shutdown tasks
-    loop.run_until_complete(print_logout_message(main))
+    loop.run_until_complete(print_logout_message(core))
     loop.run_until_complete(client.logout())
     loop.run_until_complete(client.close())

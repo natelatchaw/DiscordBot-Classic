@@ -11,11 +11,7 @@ from bot.logger import Logger
 from bot.module import ModuleInterface, InvalidInitializerError, InvalidCommandError
 
 class Handler():
-    def __init__(self, client: discord.Client, core: Core):
-        if not isinstance(client, discord.Client):
-            raise TypeError('Invalid client parameter passed.')
-        else:
-            self._client = client
+    def __init__(self, core: Core):
 
         if not isinstance(core, Core):
             raise TypeError('Invalid core parameter passed.')
@@ -54,8 +50,12 @@ class Handler():
             spec = importlib.util.spec_from_file_location(module.stem, module.resolve())
             # create the module from the spec
             created_module = importlib.util.module_from_spec(spec)
-            # execute the created module
-            spec.loader.exec_module(created_module)
+            try:
+                # execute the created module
+                spec.loader.exec_module(created_module)
+            except ModuleNotFoundError as error:
+                print(f'Failed to load {module.name}: {error}')
+                continue
             # get each class member in the module (excluding classes imported from other modules)
             members = [member for member in inspect.getmembers(created_module, inspect.isclass) if member[1].__module__ == created_module.__name__]
             # get the name and class object for each class member
@@ -65,6 +65,7 @@ class Handler():
                     self.add(command_module)
                 except InvalidInitializerError as invalidInitializerError:
                     print(invalidInitializerError)
+                    continue
 
     def add(self, module: ModuleInterface):
         # for each command's name in the command module
@@ -107,28 +108,18 @@ class Handler():
         # return the archiver instance
         return archiver
 
-    async def process(self, message: discord.Message, *, optionals: dict=dict(), archiver_key: str=None, modules_key: str=None):
+    async def process(self, message: str, *, optionals: dict=dict()):
 
-        # filter non-message objects
-        if not isinstance(message, discord.Message):
-            raise TypeError(f'Cannot process object that is not of type {type(discord.Message)}')
-
-        # if an archive key was provided
-        if archiver_key:
-            # insert the archiver into optionals dictionary
-            optionals[archiver_key] = await self.archive(message)
-        
-        # if a modules key was provided
-        if modules_key:
-            # insert the modules dict into optionals dictionary
-            optionals[modules_key] = self._modules
+        # filter non-string message parameters
+        if not isinstance(message, str):
+            raise TypeError(f'Cannot process object that is not of type {type(str)}')
 
         # try to parse a command from the message
         try:
             command_prefix: str = self._core.prefix
 
-            # get command from message content
-            command_match: re.Match = re.match(rf'^{command_prefix}[\w]+', message.clean_content)
+            # get command from message
+            command_match: re.Match = re.match(rf'^{command_prefix}[\w]+', message)
             # if the prefixed command could not be found at the beginning of the message
             if not command_match:
                 raise TypeError(f'Message does not begin with prefix ({self._core.prefix})')
@@ -143,7 +134,7 @@ class Handler():
             prefixed_parameter: re.Pattern = re.compile(rf'^{parameter_prefix}')
 
             # find all substrings that start with the parameter prefix and have arguments
-            parameter_matches = re.findall(parameter_argument_pair, message.content)
+            parameter_matches = re.findall(parameter_argument_pair, message)
             # strip the parameter prefix from each parameter/argument combo
             parameter_matches = [re.sub(prefixed_parameter, '', parameter_match) for parameter_match in parameter_matches]
             # strip any mention strings down to the author's id
@@ -153,9 +144,8 @@ class Handler():
             # convert list of tuples to dictionary
             kwargs = { argument[0] : argument[1] for argument in arguments }
 
-            # add message to parameter arguments
+            # create args list
             args = list()
-            args.append(message)
 
             try:
                 # try to get the relevant module
@@ -176,18 +166,18 @@ class Handler():
                 await module.run_command(command_name, bound_arguments)
 
             except HandlerError as handlerError:
-                await message.channel.send(handlerError)
+                raise handlerError
 
             except TypeError as typeError:
-                await message.channel.send(f'Error in {command_name} command: {typeError}')
+                raise CommandHandlingError(command_name, typeError)
 
             except InvalidCommandError as invalidCommandError:
-                await message.channel.send(invalidCommandError)
+                raise invalidCommandError
         
         # if a valid command could not be parsed from the message
         except TypeError:
-            # fallback to console message log
-            print(message.clean_content)
+            # do nothing
+            pass
             
 
 class HandlerError(Exception):
@@ -197,6 +187,16 @@ class HandlerError(Exception):
 class LookupError(HandlerError):
     """Base exception class for command lookup-related errors."""
     pass
+
+class CommandHandlingError(HandlerError):
+    """Raised when the commands dict returns a KeyError when looking up a command name."""
+
+    def __init__(self, command_name: str, typeError: TypeError):
+        self.command_name = command_name
+        self.typeError = typeError
+
+    def __str__(self):
+        return f'Error in {self.command_name} command: {self.typeError}'
 
 class CommandLookupError(LookupError):
     """Raised when the commands dict returns a KeyError when looking up a command name."""
