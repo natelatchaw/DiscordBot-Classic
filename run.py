@@ -51,9 +51,9 @@ try:
         optionals: dict = {
             '_message': message,
             '_core': core,
-            '_archiver': handler.archive(message),
+            '_archiver': await handler.archive(message),
             '_logger': Logger(core, message.guild),
-            '_modules': await handler._modules
+            '_modules': handler._modules
         }
         try:
             # handle message
