@@ -53,11 +53,11 @@ try:
             '_core': core,
             '_archiver': handler.archive(message),
             '_logger': Logger(core, message.guild),
-            '_modules': handler._modules
+            '_modules': await handler._modules
         }
         try:
             # handle message
-            await handler.process(message.content, optionals=optionals, archiver_key='_archiver', modules_key='_modules')
+            await handler.process(message.content, optionals=optionals)
         except Exception as exception:
             await message.channel.send(exception)
 
