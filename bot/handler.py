@@ -43,29 +43,32 @@ class Handler():
             raise
 
         # get all python file paths in the modules directory
-        modules = [module for module in modules_path.glob('*.py') if module.is_file()]
+        modules: list[pathlib.Path] = [module for module in modules_path.glob('*.py') if module.is_file()]
         # for each python file path
         for module in modules:
-            # get module spec from module name and path
-            spec = importlib.util.spec_from_file_location(module.stem, module.resolve())
-            # create the module from the spec
-            created_module = importlib.util.module_from_spec(spec)
             try:
-                # execute the created module
-                spec.loader.exec_module(created_module)
-            except ModuleNotFoundError as error:
-                print(f'Failed to load {module.name}: {error}')
-                continue
-            # get each class member in the module (excluding classes imported from other modules)
-            members = [member for member in inspect.getmembers(created_module, inspect.isclass) if member[1].__module__ == created_module.__name__]
-            # get the name and class object for each class member
-            for module_name, module_class in members:
-                try:
-                    command_module = ModuleInterface(module_name, module_class)
-                    self.add(command_module)
-                except InvalidInitializerError as invalidInitializerError:
-                    print(invalidInitializerError)
-                    continue
+                packaged_module: ModuleInterface = self.package(module)
+                self.add(packaged_module)
+            except ModuleNotFoundError as moduleNotFoundError:
+                print(f'Failed to load {module.name}: {moduleNotFoundError}')
+            except InvalidInitializerError as invalidInitializerError:
+                print(invalidInitializerError)
+            
+
+    def package(self, module: pathlib.Path) -> ModuleInterface:
+        # get module spec from module name and path
+        spec = importlib.util.spec_from_file_location(module.stem, module.resolve())
+        # create the module from the spec
+        created_module = importlib.util.module_from_spec(spec)
+        # execute the created module
+        spec.loader.exec_module(created_module)
+        # get each class member in the module (excluding classes imported from other modules)
+        members = [member for member in inspect.getmembers(created_module, inspect.isclass) if member[1].__module__ == created_module.__name__]
+        # get the name and class object for each class member
+        for module_name, module_class in members:
+            # create and return ModuleInterface
+            return ModuleInterface(module_name, module_class)
+
 
     def add(self, module: ModuleInterface):
         # for each command's name in the command module
