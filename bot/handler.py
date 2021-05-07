@@ -90,27 +90,6 @@ class Handler():
             raise ModuleLookupError(module_name)
         return module
 
-    async def archive(self, message: discord.Message) -> Archiver:
-        # if an archiver instance hasn't been created for the current channel
-        if message.channel.id not in self._archivers:
-            # create an archiver instance
-            archiver = Archiver(message.channel)
-            # add the archiver instance to the archiver dict
-            self._archivers[message.channel.id] = archiver
-            print(f'Created archiver instance for channel {message.channel.id}')
-        # if an archiver instance already exists for the current channel
-        else:
-            # get the archiver instance
-            archiver = self._archivers[message.channel.id]
-            print(f'Found archiver instance for channel {message.channel.id}')
-
-        # create a table for the current channel if it hasn't been created yet
-        await archiver.create()
-        # insert the current message into the archiver
-        await archiver.insert(message)
-        # return the archiver instance
-        return archiver
-
     async def process(self, message: str, *, optionals: dict=dict()):
 
         # filter non-string message parameters

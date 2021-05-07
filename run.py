@@ -21,18 +21,23 @@ async def print_logout_message(core: Core):
             logger: Logger = Logger(core, guild)
             await logger.print(shutdown_message)
 
+async def archive_message(message: discord.Message):
+    archiver: Archiver = Archiver(message.channel)
+    # create a table for the current channel if it hasn't been created yet
+    await archiver.create()
+    # insert the current message into the archiver
+    await archiver.insert(message)
+
+
 try:
     # get the time the bot was initialized
     instantiated_time = datetime.now()
-
     # get the event loop
     loop = asyncio.get_event_loop()
-
     # initialize client object
     client = discord.Client(intents=discord.Intents.all())
     # initialize Core
     core = Core()
-
     # initialize Handler
     handler = Handler(core)
 
@@ -51,7 +56,7 @@ try:
         optionals: dict = {
             '_message': message,
             '_core': core,
-            '_archiver': await handler.archive(message),
+            '_archiver': Archiver(message.channel),
             '_logger': Logger(core, message.guild),
             '_modules': handler._modules
         }
@@ -59,8 +64,11 @@ try:
             # handle message
             await handler.process(message.content, optionals=optionals)
         except Exception as exception:
+            # send error message
             await message.channel.send(exception)
-
+        finally:
+            # archive message
+            await archive_message(message)
     # try to start the bot client
     loop.run_until_complete(client.start(core.token))
 # if TypeError or ValueError occurs
@@ -80,5 +88,4 @@ except:
 finally:
     # shutdown tasks
     loop.run_until_complete(print_logout_message(core))
-    loop.run_until_complete(client.logout())
     loop.run_until_complete(client.close())
