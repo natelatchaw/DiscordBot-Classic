@@ -153,7 +153,7 @@ class LookupError(HandlerError):
     pass
 
 class CommandHandlingError(HandlerError):
-    """Raised when the commands dict returns a KeyError when looking up a command name."""
+    """Raised when an exception occurs during the handling of a command."""
 
     def __init__(self, command_name: str, typeError: TypeError):
         self.command_name = command_name
