@@ -172,7 +172,7 @@ class CommandLookupError(LookupError):
         return f'Could not find specified command: {self.command_name}.'
 
 class ModuleLookupError(LookupError):
-    """Raised when the moudles dict returns a KeyError when looking up a module name."""
+    """Raised when the modules dict returns a KeyError when looking up a module name."""
 
     def __init__(self, module_name):
         self.module_name = module_name
