@@ -3,7 +3,6 @@ import pathlib
 import inspect
 import collections
 import importlib.util
-import discord
 import re
 from bot.archiver import Archiver
 from bot.core import Core
@@ -11,33 +10,18 @@ from bot.logger import Logger
 from bot.module import ModuleInterface, InvalidInitializerError, InvalidCommandError
 
 class Handler():
-    def __init__(self, core: Core):
-
-        if not isinstance(core, Core):
-            raise TypeError('Invalid core parameter passed.')
-        else:
-            self._core = core
-        # create dictionary of archiver objects
-        self._archivers = dict()
-        
+    def __init__(self):        
         # map command names to module names
         self._commands: dict[str, str] = dict()
         # map module names to modules
         self._modules: dict[str, ModuleInterface] = dict()
 
-        self.load()
-
-    def __del__(self):
-        # for every channel archiver that was instantiated
-        for archiver in self._archivers.values():
-            archiver.close()
-
-    def load(self):
+    def load(self, modules_folder: pathlib.Path=None):
         try:
-            if self._core.modules is None:
+            if not modules_folder:
                 raise TypeError('Could not determine modules folder.')
             else:
-                modules_path = pathlib.Path(self._core.modules).resolve()
+                modules_path = pathlib.Path(modules_folder).resolve()
                 print(f'Looking for modules in {modules_path}...')
         except (TypeError, ValueError):
             raise
@@ -54,7 +38,6 @@ class Handler():
             except InvalidInitializerError as invalidInitializerError:
                 print(invalidInitializerError)
             
-
     def package(self, module: pathlib.Path) -> ModuleInterface:
         # get module spec from module name and path
         spec = importlib.util.spec_from_file_location(module.stem, module.resolve())
@@ -68,7 +51,6 @@ class Handler():
         for module_name, module_class in members:
             # create and return ModuleInterface
             return ModuleInterface(module_name, module_class)
-
 
     def add(self, module: ModuleInterface):
         # for each command's name in the command module
@@ -90,7 +72,7 @@ class Handler():
             raise ModuleLookupError(module_name)
         return module
 
-    async def process(self, message: str, *, optionals: dict=dict()):
+    async def process(self, prefix: str, message: str, *, optionals: dict=dict()):
 
         # filter non-string message parameters
         if not isinstance(message, str):
@@ -98,13 +80,13 @@ class Handler():
 
         # try to parse a command from the message
         try:
-            command_prefix: str = self._core.prefix
+            command_prefix: str = prefix
 
             # get command from message
             command_match: re.Match = re.match(rf'^{command_prefix}[\w]+', message)
             # if the prefixed command could not be found at the beginning of the message
             if not command_match:
-                raise TypeError(f'Message does not begin with prefix ({self._core.prefix})')
+                raise TypeError(f'Message does not begin with prefix ({command_prefix})')
             # get the prefixed command string from the match
             prefixed_command: str = command_match.group()
             # remove prefix from command

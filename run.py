@@ -28,7 +28,6 @@ async def archive_message(message: discord.Message):
     # insert the current message into the archiver
     await archiver.insert(message)
 
-
 try:
     # get the time the bot was initialized
     instantiated_time = datetime.now()
@@ -39,7 +38,9 @@ try:
     # initialize Core
     core = Core()
     # initialize Handler
-    handler = Handler(core)
+    handler = Handler()
+    # load modules folder
+    handler.load(core.modules)
 
     @client.event
     async def on_ready():
@@ -62,7 +63,7 @@ try:
         }
         try:
             # handle message
-            await handler.process(message.content, optionals=optionals)
+            await handler.process(core.prefix, message.content, optionals=optionals)
         except Exception as exception:
             # send error message
             await message.channel.send(exception)
