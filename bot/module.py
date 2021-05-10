@@ -89,12 +89,12 @@ class ModuleInterface():
             raise ParameterMismatchError(signature, arguments.signature)
 
         # if the called command is synchronous
-        if CommandInterface.isSynchronousMethod(command):
+        if CommandInterface.is_synchronous_method(command):
             # call command with parameters
             command(*arguments.args, **arguments.kwargs)
 
         # not supported yet
-        if CommandInterface.isAsynchronousMethod(command):
+        if CommandInterface.is_asynchronous_method(command):
             await command(*arguments.args, **arguments.kwargs)
 
 

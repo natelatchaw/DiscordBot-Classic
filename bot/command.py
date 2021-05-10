@@ -4,11 +4,11 @@ from inspect import Signature, BoundArguments
 class CommandInterface():
     
     @classmethod
-    def isSynchronousMethod(cls, obj):
+    def is_synchronous_method(cls, obj):
         return inspect.ismethod(obj) and not inspect.iscoroutinefunction(obj)
 
     @classmethod
-    def isAsynchronousMethod(cls, obj):
+    def is_asynchronous_method(cls, obj):
         return inspect.ismethod(obj) and inspect.iscoroutinefunction(obj)
 
     def __init__(self, name: str, command: object):
