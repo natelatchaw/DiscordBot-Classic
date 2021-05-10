@@ -89,14 +89,13 @@ class ModuleInterface():
             raise ParameterMismatchError(signature, arguments.signature)
 
         # if the called command is synchronous
-        if Command.isSynchronousMethod(command):
+        if CommandInterface.isSynchronousMethod(command):
             # call command with parameters
             command(*arguments.args, **arguments.kwargs)
 
         # not supported yet
-        if Command.isAsynchronousMethod(command):
+        if CommandInterface.isAsynchronousMethod(command):
             await command(*arguments.args, **arguments.kwargs)
-    
 
 
 class ModuleError(Exception):
@@ -131,13 +130,3 @@ class ParameterMismatchError(ModuleError):
 
     def __str__(self):
         return f'''Invalid arguments provided to command. Expected {self.command_signature}; received {self.argument_signature}.'''
-
-
-class Command():
-    @classmethod
-    def isSynchronousMethod(cls, obj):
-        return inspect.ismethod(obj) and not inspect.iscoroutinefunction(obj)
-
-    @classmethod
-    def isAsynchronousMethod(cls, obj):
-        return inspect.ismethod(obj) and inspect.iscoroutinefunction(obj)
