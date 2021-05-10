@@ -12,7 +12,7 @@ class Logger():
         try:
             # get the logging channel id from the config
             channel_id: int = self.core.logging_channel
-        except (TypeError, ValueError) as error:
+        except (TypeError, ValueError):
             return
         # get the channel object from the channel id
         logging_channel = self.guild.get_channel(channel_id)

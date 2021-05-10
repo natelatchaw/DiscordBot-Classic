@@ -7,7 +7,7 @@ setup(
     author='Nathan Latchaw',
     author_email='natelatchaw@gmail.com',
     license='Creative Commons',
-    packages=['bot'],
+    packages=['bot', 'bot.configuration', 'bot.static'],
     url='not available',
     install_requires=[
         'discord.py',
