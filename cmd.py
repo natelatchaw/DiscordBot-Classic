@@ -1,19 +1,19 @@
 import asyncio
 
-from bot.core import Core
-from bot.handler import Handler
+from router.settings import Settings
+from router.handler import Handler
 
 loop = asyncio.get_event_loop()
 
-core = Core()
+settings = Settings()
 handler = Handler()
-handler.load(core.modules)
+handler.load(settings.modules)
 
 async def await_input():
     while True:
         message: str = input()
         try:
-            await handler.process(core.prefix, message)
+            await handler.process(settings.prefix, message)
         except Exception as exception:
             print(exception)
 
