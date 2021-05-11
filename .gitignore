@@ -11,10 +11,6 @@ data/
 # cache
 cache/
 
-# modules
-modules/
-modules/*
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
