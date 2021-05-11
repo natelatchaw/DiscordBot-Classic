@@ -4,8 +4,8 @@ import os
 import re
 import random
 from datetime import datetime, timezone
-from bot.static.urlregex import urlRegex
-from bot.static.snowflake import Snowflake
+from router.static.urlregex import urlRegex
+from router.static.snowflake import Snowflake
 
 class Archiver():
 
