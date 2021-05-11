@@ -5,6 +5,7 @@ import discord.ext
 from router.settings import Settings
 from router.handler import Handler
 from router.logger import Logger
+from providers.archiver import Archiver
 
 async def print_login_message(settings: Settings):
     if client.user:
@@ -21,12 +22,11 @@ async def print_logout_message(settings: Settings):
             await logger.print(shutdown_message)
 
 async def archive_message(message: discord.Message):
-    ###archiver: Archiver = Archiver(message.channel)
+    archiver: Archiver = Archiver(message.channel)
     # create a table for the current channel if it hasn't been created yet
-    ###await archiver.create()
+    await archiver.create()
     # insert the current message into the archiver
-    ###await archiver.insert(message)
-    pass
+    await archiver.insert(message)
 
 try:
     # get the time the bot was initialized
@@ -57,7 +57,7 @@ try:
         optionals: dict = {
             '_message': message,
             '_core': settings,
-            ###'_archiver': Archiver(message.channel),
+            '_archiver': Archiver(message.channel),
             '_logger': Logger(settings, message.guild),
             '_modules': handler._modules
         }
