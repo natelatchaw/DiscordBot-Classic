@@ -7,8 +7,8 @@ import requests
 import matplotlib.pyplot as pyplot
 import numpy
 from router.settings import Settings
-#from router.archiver import Archiver
 from router.logger import Logger
+from providers.archiver import Archiver
 
 class Archive():
     """

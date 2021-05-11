@@ -1,7 +1,7 @@
 import discord
 import asyncio
-from bot.core import Core
-from bot.logger import Logger
+from router.settings import Settings
+from router.logger import Logger
 
 class Delete():
     """
@@ -11,7 +11,7 @@ class Delete():
     def __init__(self):
         pass
 
-    async def delete(self, *, _message: discord.Message, _core: Core, _logger: Logger, limit: str=None, author: str=None):
+    async def delete(self, *, _message: discord.Message, _settings: Settings, _logger: Logger, limit: str=None, author: str=None):
         """
         Deletes messages from the text channel where the command is invoked. For example, for a limit of *n*, only the subset of the last *n* messages will be considered for deletion.
 
@@ -48,7 +48,7 @@ class Delete():
         # try to get the owner id from the config
         try:
             # get the bot owner id
-            bot_owner_id = str(_core.owner)
+            bot_owner_id = str(_settings.owner)
         # if an error occurred retrieving the owner id
         except ValueError:
             # set the bot owner id to None

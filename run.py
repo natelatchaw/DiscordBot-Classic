@@ -35,7 +35,7 @@ try:
     loop = asyncio.get_event_loop()
     # initialize client object
     client = discord.Client(intents=discord.Intents.all())
-    # initialize Core
+    # initialize Settings
     settings = Settings()
     # initialize Handler
     handler = Handler()
@@ -56,7 +56,7 @@ try:
         # initialize optionals to pass to handler
         optionals: dict = {
             '_message': message,
-            '_core': settings,
+            '_settings': settings,
             '_archiver': Archiver(message.channel),
             '_logger': Logger(settings, message.guild),
             '_modules': handler._modules
