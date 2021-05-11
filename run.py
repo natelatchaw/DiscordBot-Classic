@@ -64,6 +64,9 @@ try:
         try:
             # handle message
             await handler.process(core.prefix, message.content, optionals=optionals)
+        except ValueError:
+            # no prefix configured
+            pass
         except Exception as exception:
             # send error message
             await message.channel.send(exception)
