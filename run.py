@@ -7,6 +7,25 @@ from router.handler import Handler
 from router.logger import Logger
 from providers.archiver import Archiver
 
+class ChannelLogger(Logger):
+
+    def __init__(self, settings: Settings, guild: discord.Guild):
+        super().__init__(settings)
+        self.guild = guild
+
+    async def print(self, *args):
+        message = '\n'.join(args)
+        try:
+            # get the logging channel id from the config
+            channel_id: int = self.core.logging_channel
+        except (TypeError, ValueError):
+            return
+        # get the channel object from the channel id
+        logging_channel = self.guild.get_channel(channel_id)
+        if not isinstance(logging_channel, discord.TextChannel):
+            return
+        await logging_channel.send(f'{message}')
+
 async def print_login_message(settings: Settings):
     if client.user:
         startup_message = f'Bot client {client.user.mention} initialized in {round((datetime.now() - instantiated_time).total_seconds(), 1)}s'
@@ -18,7 +37,7 @@ async def print_logout_message(settings: Settings):
     if client.user:
         shutdown_message = f'Bot client {client.user.mention} shutting down. Runtime: {round((datetime.now() - instantiated_time).total_seconds(), 1)}s'
         for guild in client.guilds:
-            logger: Logger = Logger(settings, guild)
+            logger: Logger = ChannelLogger(settings, guild)
             await logger.print(shutdown_message)
 
 async def archive_message(message: discord.Message):
@@ -40,7 +59,7 @@ try:
     # initialize Handler
     handler = Handler()
     # load modules folder
-    handler.load(settings.modules)
+    handler.load(settings.components)
 
     @client.event
     async def on_ready():
