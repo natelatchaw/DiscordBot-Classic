@@ -17,7 +17,7 @@ class ChannelLogger(Logger):
         message = '\n'.join(args)
         try:
             # get the logging channel id from the config
-            channel_id: int = self.core.logging_channel
+            channel_id: int = self.settings.logging_channel
         except (TypeError, ValueError):
             return
         # get the channel object from the channel id
@@ -30,7 +30,7 @@ async def print_login_message(settings: Settings):
     if client.user:
         startup_message = f'Bot client {client.user.mention} initialized in {round((datetime.now() - instantiated_time).total_seconds(), 1)}s'
         for guild in client.guilds:
-            logger: Logger = Logger(settings, guild)
+            logger: Logger = ChannelLogger(settings, guild)
             await logger.print(startup_message)
 
 async def print_logout_message(settings: Settings):
@@ -77,8 +77,8 @@ try:
             '_message': message,
             '_settings': settings,
             '_archiver': Archiver(message.channel),
-            '_logger': Logger(settings, message.guild),
-            '_modules': handler._modules
+            '_logger': ChannelLogger(settings, message.guild),
+            '_components': handler._components
         }
         try:
             # handle message
