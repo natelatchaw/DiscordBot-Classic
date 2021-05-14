@@ -29,7 +29,10 @@ class Audio():
 
     async def play(self, *, _client: discord.Client, _message: discord.Message, url: str=None, channel: str=None):
         """
-        Play
+        *[BETA]* Play audio from a YouTube video.
+
+        Parameters:
+            - url: The url of the source video to play
         """
         try:
             # if the user specified a voice channel to use
@@ -42,6 +45,9 @@ class Audio():
                 voice_channel: discord.VoiceChannel = next((channel for channel in channels if channel.id == channel_id), None)
                 if not voice_channel:
                     raise ValueError('The channel you specified is not valid for audio playback.')
+
+            elif not _message.author.voice:
+                raise ValueError('You must join a voice channel to use this command.')
 
             # if the user is in a voice channel
             elif _message.author.voice.channel:
@@ -82,19 +88,13 @@ class Audio():
 
             # connect to the voice channel and get a VoiceClient
             voice_client: discord.VoiceClient = await voice_channel.connect(reconnect=reconnect, timeout=timeout)
-            # begin broadcasting voice data
-            ##Sawait voice_client.connect(reconnect=reconnect, timeout=timeout)
 
             loop: AbstractEventLoop = asyncio.get_event_loop()
             data = await loop.run_in_executor(None, lambda: youtube_dl.YoutubeDL(youtube_dl_options).extract_info(url, download=False))
-            
-            #entries: List[Dict[str, Any]] = data['entries']
-            #data: Dict[str, Any] = entries.pop(0)
 
             location: str = data.get('url')
             title: str = data.get('title')
             thumbnail: str = data['thumbnails'][0]['url']
-            print(thumbnail)
             
             audio_data: FFmpegAudio = discord.FFmpegPCMAudio(location, **ffmpeg_options)
             source = discord.PCMVolumeTransformer(audio_data)
@@ -103,10 +103,6 @@ class Audio():
             voice_client.play(source=source, after=after)
             await _client.change_presence(activity=discord.Game(title))
 
-        except Exception as exception:
-            print(type(exception))
-            print(exception)
-            return
         except TypeError:
             # TODO: 
             # VoiceClient.play() - Source is not an AudioSource or after is not a callable.
@@ -127,3 +123,4 @@ class Audio():
             raise
         finally:
             await _client.change_presence(activity=None)
+            await _message.delete()
