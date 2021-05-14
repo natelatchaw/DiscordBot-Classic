@@ -47,12 +47,22 @@ class Delete():
         
         # try to get the owner id from the config
         try:
+            # get the message owner id
+            message_owner_id = str(_message.author.id)
+        # if an error occurred retrieving the message owner id
+        except ValueError:
+            # set the message owner id to None
+            message_owner_id = None
+
+        # try to get the owner id from the config
+        try:
             # get the bot owner id
             bot_owner_id = str(_settings.owner)
         # if an error occurred retrieving the owner id
         except ValueError:
             # set the bot owner id to None
             bot_owner_id = None
+
         # if the members intent is available
         if discord.Intents.members:
             # get the guild owner id
@@ -67,10 +77,9 @@ class Delete():
             server_owner_id
         ]
         # if the message author is not in the whitelist
-        if str(_message.author.id) not in whitelist:
+        if message_owner_id not in whitelist:
             await _logger.print('You are not authorized to delete messages.', f'For message {_message.jump_url}')
             raise ValueError(f'{_message.author.id} is not a whitelisted user ID.')
-            return
         # create empty list for messages to be added to
         messages = []
         # for each message in the channel's history
