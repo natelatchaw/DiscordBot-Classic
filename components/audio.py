@@ -68,13 +68,14 @@ class Audio():
         try:
             reconnect: bool = True
             timeout: float = 3.0
+            bitrate: str = str(voice_channel.bitrate/1000)
             youtube_dl_options: Dict[str, Any] = {
                 'format': 'bestaudio/best',
                 'postprocessors': [
                     {
                         'key': 'FFmpegExtractAudio',
                         'preferredcodec': 'opus',
-                        'preferredquality': str(voice_channel.bitrate),
+                        'preferredquality': bitrate,
                     },
                 ],
                 'logger': self.AudioLogger(),
@@ -94,13 +95,14 @@ class Audio():
 
             location: str = data.get('url')
             title: str = data.get('title')
+            bitrate: str = data.get('abr')
             thumbnail: str = data['thumbnails'][0]['url']
             
             audio_data: FFmpegAudio = discord.FFmpegPCMAudio(location, **ffmpeg_options)
             source = discord.PCMVolumeTransformer(audio_data)
 
             await _client.change_presence(activity=discord.Game(title))
-            
+
             after: Callable[[Exception], Any] = lambda error: print(error) if error else None
             voice_client.play(source=source, after=after)
 
