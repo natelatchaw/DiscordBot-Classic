@@ -4,6 +4,8 @@ from platform import platform
 from typing import Any, Callable, Dict, List
 
 import discord
+from discord.channel import VoiceChannel
+from discord.voice_client import VoiceClient
 import youtube_dl
 from discord.errors import ClientException
 from discord.player import FFmpegAudio
@@ -13,6 +15,16 @@ class Audio():
     """
     Component description unavailable.
     """
+
+    @property
+    def voice_client(self) -> discord.VoiceClient:
+        try:
+            return self._voice_client
+        except:
+            return None
+    @voice_client.setter
+    def voice_client(self, voice_client: discord.VoiceClient):
+        self._voice_client = voice_client
 
     def __init__(self):
         pass
@@ -27,13 +39,7 @@ class Audio():
         def error(self, message):
             print('Audio.py', '<<ERROR>>', message)
 
-    async def play(self, *, _client: discord.Client, _message: discord.Message, url: str=None, channel: str=None):
-        """
-        *[BETA]* Play audio from a YouTube video.
-
-        Parameters:
-            - url: The url of the source video to play
-        """
+    async def connect(self, *, _client: discord.Client, _message: discord.Message, channel: str=None):
         try:
             # if the user specified a voice channel to use
             if channel:
@@ -62,13 +68,44 @@ class Audio():
                 if not voice_channel:
                     raise ValueError('You must join a voice channel to use this command.')
 
-        except Exception as exception:
+            reconnect: bool = True
+            timeout: float = 3.0
+            # connect to the voice channel and get a VoiceClient
+            self.voice_client: discord.VoiceClient = await voice_channel.connect(reconnect=reconnect, timeout=timeout)
+        except Exception:
+            raise
+
+    async def disconnect(self, *, _client: discord.Client, _message: discord.Message):
+        """
+        """
+        try:
+            if not self.voice_client:
+                raise ConnectionError('Cannot disconnect: Not connected to begin with.')
+            elif not self.voice_client.is_connected:
+                raise ConnectionError('Cannot disconnect: Not connected to begin with.')
+            else:
+                await self.voice_client.disconnect()
+        except ConnectionError:
+            raise
+        except:
+            await self.voice_client.disconnect(force=True)
+
+    async def play(self, *, _client: discord.Client, _message: discord.Message, url: str=None, channel: str=None):
+        """
+        *[BETA]* Play audio from a YouTube video.
+
+        Parameters:
+            - url: The url of the source video to play
+        """
+        try:
+            await self.connect(_client=_client, _message=_message, channel=channel)
+        except discord.ClientException:
+            pass
+        except Exception:
             raise
 
         try:
-            reconnect: bool = True
-            timeout: float = 3.0
-            bitrate: str = str(voice_channel.bitrate/1000)
+            bitrate: str = str(self.voice_client.channel.bitrate/1000)
             youtube_dl_options: Dict[str, Any] = {
                 'format': 'bestaudio/best',
                 'postprocessors': [
@@ -86,10 +123,6 @@ class Audio():
             ffmpeg_options: Dict[str, str] = {
                 'options': '-vn'
             }
-
-            # connect to the voice channel and get a VoiceClient
-            voice_client: discord.VoiceClient = await voice_channel.connect(reconnect=reconnect, timeout=timeout)
-
             loop: AbstractEventLoop = asyncio.get_event_loop()
             data = await loop.run_in_executor(None, lambda: youtube_dl.YoutubeDL(youtube_dl_options).extract_info(url, download=False))
 
@@ -104,7 +137,7 @@ class Audio():
             await _client.change_presence(activity=discord.Game(title))
 
             after: Callable[[Exception], Any] = lambda error: print(error) if error else None
-            voice_client.play(source=source, after=after)
+            self.voice_client.play(source=source, after=after)
 
         except TypeError:
             # TODO: 
