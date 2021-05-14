@@ -99,9 +99,10 @@ class Audio():
             audio_data: FFmpegAudio = discord.FFmpegPCMAudio(location, **ffmpeg_options)
             source = discord.PCMVolumeTransformer(audio_data)
 
+            await _client.change_presence(activity=discord.Game(title))
+            
             after: Callable[[Exception], Any] = lambda error: print(error) if error else None
             voice_client.play(source=source, after=after)
-            await _client.change_presence(activity=discord.Game(title))
 
         except TypeError:
             # TODO: 
