@@ -83,15 +83,19 @@ class Delete():
         # create empty list for messages to be added to
         messages = []
         # for each message in the channel's history
-        async for _message in _message.channel.history(limit=limit):
+        async for message in _message.channel.history(limit=limit+1):
+            # if the message is the delete command message
+            if _message.id == message.id:
+                # skip it
+                continue
             # if the author was not specified
             if author is None:
                 # add the message to the messages list
-                messages.append(_message)
+                messages.append(message)
             # if the message's author matches the provided author
-            elif _message.author.id == author:
+            elif message.author.id == author:
                 # add the message to the messages list
-                messages.append(_message)
+                messages.append(message)
         # get number of messages to be deleted
         message_count = len(messages)
         try:
@@ -106,5 +110,7 @@ class Delete():
         summary_message = await _message.channel.send(f'{message_count} messages deleted.')
         # wait 3 seconds
         await asyncio.sleep(10)
+        # delete the delete command
+        await _message.delete()
         # delete the summary message
         await summary_message.delete()
