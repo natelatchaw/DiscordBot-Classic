@@ -78,7 +78,8 @@ try:
             '_settings': settings,
             '_archiver': Archiver(message.channel),
             '_logger': ChannelLogger(settings, message.guild),
-            '_components': handler._components
+            '_components': handler._components,
+            '_client': client,
         }
         try:
             # handle message
@@ -87,8 +88,11 @@ try:
             # no prefix configured
             pass
         except Exception as exception:
-            # send error message
-            await message.channel.send(exception)
+            if str(exception) is not None:
+                # send error message
+                await message.channel.send(exception)
+            else:
+                await message.channel.send('An unknown exception occurred.')
         finally:
             # archive message
             await archive_message(message)
