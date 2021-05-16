@@ -90,7 +90,7 @@ class Audio():
         except:
             await self.voice_client.disconnect(force=True)
 
-    async def play(self, *, _client: discord.Client, _message: discord.Message, url: str=None, channel: str=None):
+    async def play(self, *, _client: discord.Client, _message: discord.Message, url: str=None, search:str=None, channel: str=None):
         """
         *[BETA]* Play audio from a YouTube video.
 
@@ -108,6 +108,7 @@ class Audio():
             bitrate: str = str(self.voice_client.channel.bitrate/1000)
             youtube_dl_options: Dict[str, Any] = {
                 'format': 'bestaudio/best',
+                'noplaylist': 'False',
                 'postprocessors': [
                     {
                         'key': 'FFmpegExtractAudio',
@@ -124,12 +125,17 @@ class Audio():
                 'options': '-vn'
             }
             loop: AbstractEventLoop = asyncio.get_event_loop()
-            data = await loop.run_in_executor(None, lambda: youtube_dl.YoutubeDL(youtube_dl_options).extract_info(url, download=False))
+            if url:
+                data = await loop.run_in_executor(None, lambda: youtube_dl.YoutubeDL(youtube_dl_options).extract_info(url, download=False))
+            elif search:
+                data = await loop.run_in_executor(None, lambda: youtube_dl.YoutubeDL(youtube_dl_options).extract_info(f'ytsearch:{search}', download=False))
+            else:
+                raise Exception('No source provided.')
 
             location: str = data.get('url')
             title: str = data.get('title')
             bitrate: str = data.get('abr')
-            thumbnail: str = data['thumbnails'][0]['url']
+            #thumbnail: str = data['thumbnails'][0]['url']
             
             audio_data: FFmpegAudio = discord.FFmpegPCMAudio(location, **ffmpeg_options)
             source = discord.PCMVolumeTransformer(audio_data)
@@ -156,6 +162,8 @@ class Audio():
             # TODO: 
             # VoiceClient.connect() - The opus library has not been loaded.
             # VoiceClient.play() - Source is not opus encoded and opus is not loaded.
+            raise
+        except:
             raise
         finally:
             await _client.change_presence(activity=None)
