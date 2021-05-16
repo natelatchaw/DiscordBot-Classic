@@ -90,6 +90,9 @@ class Audio():
         except:
             await self.voice_client.disconnect(force=True)
 
+    async def p(self, *, _client: discord.Client, _message: discord.Message, u: str=None, s:str=None, c: str=None):
+        await self.play(_client=_client, _message=_message, url=u, search=s, channel=c)
+
     async def play(self, *, _client: discord.Client, _message: discord.Message, url: str=None, search:str=None, channel: str=None):
         """
         *[BETA]* Play audio from a YouTube video.
@@ -164,8 +167,6 @@ class Audio():
             # TODO: 
             # VoiceClient.connect() - The opus library has not been loaded.
             # VoiceClient.play() - Source is not opus encoded and opus is not loaded.
-            raise
-        except:
             raise
         finally:
             await _client.change_presence(activity=None)
