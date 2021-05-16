@@ -101,9 +101,8 @@ try:
         try:
             # handle message
             await handler.process(settings.prefix, message.content, optionals=optionals)
-        except ValueError:
-            # no prefix configured
-            pass
+        except ConfigurationError as configurationError:
+            print(configurationError)
         except TypeError as typeError:
             # archive failed
             print(typeError)
