@@ -34,7 +34,7 @@ class Utility():
         """
         dm_channel: discord.DMChannel = _message.author.create_dm()
         embed = discord.Embed()
-        embed.title = f'{_message.channel.mention} Channel ID'
+        embed.title = f'{_message.channel.name} Channel ID'
         embed.description = _message.channel.id
         embed.timestamp = _message.created_at
         await dm_channel.send(embed=embed)
@@ -45,7 +45,7 @@ class Utility():
         """
         dm_channel: discord.DMChannel = _message.author.create_dm()
         embed = discord.Embed()
-        embed.title = f'{_message.guild.mention} Channel IDs'
+        embed.title = f'{_message.guild.name} Channel IDs'
         embed.description = _message.guild.id
         for channel in _message.guild.channels:
             embed.add_field(name=channel.mention, value=channel.id)
