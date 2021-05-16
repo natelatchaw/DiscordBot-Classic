@@ -38,3 +38,17 @@ class Utility():
         embed.description = _message.channel.id
         embed.timestamp = _message.created_at
         await dm_channel.send(embed=embed)
+
+    async def get_channel_ids(self, *, _message: discord.Message):
+        """
+        DMs all IDs of channels of the guild this command is invoked in to the user that invoked the command.
+        """
+        dm_channel: discord.DMChannel = _message.author.create_dm()
+        embed = discord.Embed()
+        embed.title = f'{_message.guild.mention} Channel IDs'
+        embed.description = _message.guild.id
+        for channel in _message.guild.channels:
+            embed.add_field(name=channel.mention, value=channel.id)
+        embed.timestamp = _message.created_at
+        await dm_channel.send(embed=embed)
+        
