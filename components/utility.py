@@ -40,6 +40,7 @@ class Utility():
         embed.add_field(name=channel.name, value=channel.id, inline=False)
         embed.timestamp = _message.created_at
         await dm_channel.send(embed=embed)
+        await _message.delete()
 
     async def get_channel_ids(self, *, _message: discord.Message):
         """
@@ -52,4 +53,4 @@ class Utility():
             embed.add_field(name=channel.name, value=channel.id, inline=False)
         embed.timestamp = _message.created_at
         await dm_channel.send(embed=embed)
-        
+        await _message.delete()
