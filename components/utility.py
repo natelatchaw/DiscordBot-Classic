@@ -27,3 +27,14 @@ class Utility():
             await _message.channel.send(f'Channel {_message.channel.mention} set as log channel.')
         except ValueError as valueError:
             await _message.channel.send(valueError)
+
+    async def get_channel_id(self, *, _message: discord.Message):
+        """
+        DMs the ID of the channel this command is invoked in to the user that invoked the command.
+        """
+        dm_channel: discord.DMChannel = _message.author.create_dm()
+        embed = discord.Embed()
+        embed.title = f'{_message.channel.mention} Channel ID'
+        embed.description = _message.channel.id
+        embed.timestamp = _message.created_at
+        await dm_channel.send(embed=embed)
