@@ -128,7 +128,9 @@ class Audio():
             if url:
                 data = await loop.run_in_executor(None, lambda: youtube_dl.YoutubeDL(youtube_dl_options).extract_info(url, download=False))
             elif search:
-                data = await loop.run_in_executor(None, lambda: youtube_dl.YoutubeDL(youtube_dl_options).extract_info(f'ytsearch:{search}', download=False))
+                query = await loop.run_in_executor(None, lambda: youtube_dl.YoutubeDL(youtube_dl_options).extract_info(f'ytsearch:{search}', download=False))
+                videos = query.get('entries')
+                data = videos.pop(0)
             else:
                 raise Exception('No source provided.')
 
