@@ -1,4 +1,5 @@
 import discord
+from discord import channel
 from router.settings import Settings
 
 class Utility():
@@ -32,10 +33,12 @@ class Utility():
         """
         DMs the ID of the channel this command is invoked in to the user that invoked the command.
         """
-        dm_channel: discord.DMChannel = _message.author.create_dm()
+        dm_channel: discord.DMChannel = await _message.author.create_dm()
+        channel = _message.channel
         embed = discord.Embed()
         embed.title = f'{_message.channel.name} Channel ID'
-        embed.description = _message.channel.id
+        #embed.description = _message.channel.id
+        embed.add_field(name=channel.name, value=channel.id, inline=False)
         embed.timestamp = _message.created_at
         await dm_channel.send(embed=embed)
 
@@ -43,12 +46,12 @@ class Utility():
         """
         DMs all IDs of channels of the guild this command is invoked in to the user that invoked the command.
         """
-        dm_channel: discord.DMChannel = _message.author.create_dm()
+        dm_channel: discord.DMChannel = await _message.author.create_dm()
         embed = discord.Embed()
         embed.title = f'{_message.guild.name} Channel IDs'
-        embed.description = _message.guild.id
+        #embed.description = _message.guild.id
         for channel in _message.guild.channels:
-            embed.add_field(name=channel.mention, value=channel.id)
+            embed.add_field(name=channel.name, value=channel.id, inline=False)
         embed.timestamp = _message.created_at
         await dm_channel.send(embed=embed)
         
