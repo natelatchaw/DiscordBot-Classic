@@ -1,7 +1,9 @@
 import asyncio
 from datetime import datetime
+from typing import Type
 import discord
 import discord.ext
+from discord.state import logging_coroutine
 from router.settings import Settings
 from router.handler import Handler
 from router.logger import Logger
@@ -14,6 +16,9 @@ class ChannelLogger(Logger):
         self.guild = guild
 
     async def print(self, *args):
+        if not self.guild:
+            return
+            
         message = '\n'.join(args)
         try:
             # get the logging channel id from the config
@@ -72,21 +77,35 @@ try:
         # filter non-message objects
         if not isinstance(message, discord.Message):
             raise TypeError('Received an object that is not a message.')
+        
+        try:
+            archiver: Archiver = Archiver(message.channel)
+        except:
+            archiver = None
+        try:
+            logger: ChannelLogger = ChannelLogger(settings, message.guild)
+        except:
+            logger = None
+
         # initialize optionals to pass to handler
         optionals: dict = {
             '_message': message,
             '_settings': settings,
-            '_archiver': Archiver(message.channel),
-            '_logger': ChannelLogger(settings, message.guild),
+            '_archiver': archiver,
+            '_logger': logger,
             '_components': handler._components,
             '_client': client,
         }
+        
         try:
             # handle message
             await handler.process(settings.prefix, message.content, optionals=optionals)
         except ValueError:
             # no prefix configured
             pass
+        except TypeError as typeError:
+            # archive failed
+            print(typeError)
         except Exception as exception:
             if str(exception) is not None:
                 # send error message
@@ -94,8 +113,12 @@ try:
             else:
                 await message.channel.send('An unknown exception occurred.')
         finally:
-            # archive message
-            await archive_message(message)
+            try:
+                # archive message
+                await archive_message(message)
+            except Exception as exception:
+                print(exception)
+                
     # try to start the bot client
     loop.run_until_complete(client.start(settings.token))
 # if TypeError or ValueError occurs

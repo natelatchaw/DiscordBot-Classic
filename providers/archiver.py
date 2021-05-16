@@ -12,6 +12,8 @@ class Archiver():
     def __init__(self, channel: discord.TextChannel):
         if isinstance(channel, discord.TextChannel):
             self._channel = channel
+        elif isinstance(channel, discord.DMChannel):
+            raise TypeError('Provided channel is a DMChannel. Archiving not supported.')
         else:
             raise TypeError('Provided channel is not a TextChannel.')
 

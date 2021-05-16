@@ -63,14 +63,19 @@ class Delete():
             # set the bot owner id to None
             bot_owner_id = None
 
+        # if the message is from a DM
+        if isinstance(_message.channel, discord.DMChannel):
+            # use the message author as the server owner
+            server_owner_id = _message.author.id
         # if the members intent is available
-        if discord.Intents.members:
+        elif discord.Intents.members and _message.guild:
             # get the guild owner id
             server_owner_id = str(_message.guild.owner.id)
         # otherwise
         else:
             # set the guild owner id to None
             server_owner_id = None
+
         # create user whitelist
         whitelist = [
             bot_owner_id,
