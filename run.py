@@ -8,6 +8,7 @@ from router.settings import Settings
 from router.handler import Handler
 from router.logger import Logger
 from providers.archiver import Archiver
+from router.error.configuration import ConfigurationError
 
 class ChannelLogger(Logger):
 
@@ -18,7 +19,7 @@ class ChannelLogger(Logger):
     async def print(self, *args):
         if not self.guild:
             return
-            
+
         message = '\n'.join(args)
         try:
             # get the logging channel id from the config
@@ -122,8 +123,9 @@ try:
     # try to start the bot client
     loop.run_until_complete(client.start(settings.token))
 # if TypeError or ValueError occurs
-except (TypeError, ValueError) as error:
-    print(error)
+except ConfigurationError as error:
+    #raise
+    print(error.internal_error)
 # if program is interrupted in console
 except KeyboardInterrupt as keyboardInterrupt:
     print(f'KeyboardInterrupt event occurred: {keyboardInterrupt}')
