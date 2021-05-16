@@ -80,7 +80,6 @@ class Archiver():
         try:
             # execute the insert statement with parameter injection
             self._cursor.execute(insert_statement, values)
-            print(f'Message {message.id}: inserted')
             # save changes
             self._connection.commit()
         # catch integrity errors (UNIQUE constraints, etc.)
