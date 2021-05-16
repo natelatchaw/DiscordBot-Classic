@@ -4,11 +4,13 @@ from typing import Type
 import discord
 import discord.ext
 from discord.state import logging_coroutine
+from router.error.handler import ComponentLookupError, HandlerError
 from router.settings import Settings
 from router.handler import Handler
 from router.logger import Logger
 from providers.archiver import Archiver
 from router.error.configuration import ConfigurationError
+from router.error.component import ComponentError
 
 class ChannelLogger(Logger):
 
@@ -24,7 +26,7 @@ class ChannelLogger(Logger):
         try:
             # get the logging channel id from the config
             channel_id: int = self.settings.logging_channel
-        except (TypeError, ValueError):
+        except ConfigurationError:
             return
         # get the channel object from the channel id
         logging_channel = self.guild.get_channel(channel_id)
@@ -106,6 +108,8 @@ try:
         except TypeError as typeError:
             # archive failed
             print(typeError)
+        except HandlerError as handlerError:
+            await message.channel.send(handlerError.internal_error)
         except Exception as exception:
             if str(exception) is not None:
                 # send error message
