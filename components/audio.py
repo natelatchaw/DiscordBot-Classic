@@ -1,7 +1,7 @@
 import asyncio
 from asyncio.events import AbstractEventLoop
 from platform import platform
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, final
 from queue import Queue
 
 import discord
@@ -174,9 +174,10 @@ class Audio():
             embed.timestamp = _message.created_at
             embed.color = discord.Colour.from_rgb(r=255, g=0, b=0)
             await _message.channel.send(embed=embed)
-
         except:
             raise
+        finally:
+            await _message.delete()
 
     async def play(self, *, _client: discord.Client, _message: discord.Message, url: str=None, search:str=None, channel: str=None):
         """
@@ -231,4 +232,3 @@ class Audio():
             raise
         finally:
             await _client.change_presence(activity=None)
-            await _message.delete()
