@@ -2,19 +2,34 @@ import asyncio
 from asyncio.events import AbstractEventLoop
 from platform import platform
 from typing import Any, Callable, Dict, List
+from queue import Queue
 
 import discord
+from discord import message
 from discord.channel import VoiceChannel
+from discord.utils import get
 from discord.voice_client import VoiceClient
 import youtube_dl
 from discord.errors import ClientException
-from discord.player import FFmpegAudio
+from discord.player import AudioSource, FFmpegAudio
 
 
 class Audio():
     """
     Component description unavailable.
     """
+
+    @property
+    def request_queue(self) -> Queue:
+        try:
+            self._queue
+        except AttributeError:
+            self._queue = Queue()
+        finally:
+            return self._queue
+    @request_queue.setter
+    def request_queue(self, queue):
+        self._queue = queue
 
     @property
     def voice_client(self) -> discord.VoiceClient:
@@ -38,6 +53,17 @@ class Audio():
 
         def error(self, message):
             print('Audio.py', '<<ERROR>>', message)
+
+    class AudioRequest():
+
+        def __init__(self, title: str, url: str, webpage_url: str, channel: str, bitrate: float, thumbnail: str, source: AudioSource):
+            self.title = title
+            self.url = url
+            self.webpage_url = webpage_url
+            self.channel = channel
+            self.bitrate = bitrate
+            self.thumbnail = thumbnail
+            self.source = source
 
     async def connect(self, *, _client: discord.Client, _message: discord.Message, channel: str=None):
         try:
@@ -90,25 +116,12 @@ class Audio():
         except:
             await self.voice_client.disconnect(force=True)
 
-    async def p(self, *, _client: discord.Client, _message: discord.Message, u: str=None, s:str=None, c: str=None):
-        await self.play(_client=_client, _message=_message, url=u, search=s, channel=c)
-
-    async def play(self, *, _client: discord.Client, _message: discord.Message, url: str=None, search:str=None, channel: str=None):
-        """
-        *[BETA]* Play audio from a YouTube video.
-
-        Parameters:
-            - url: The url of the source video to play
-        """
+    async def queue(self, *, _client: discord.Client, _message: discord.Message, url: str=None, search:str=None) -> AudioRequest:
         try:
-            await self.connect(_client=_client, _message=_message, channel=channel)
-        except discord.ClientException:
-            pass
-        except Exception:
-            raise
-
-        try:
-            bitrate: str = str(self.voice_client.channel.bitrate/1000)
+            if self.voice_client:
+                bitrate: str = str(self.voice_client.channel.bitrate/1000)
+            else:
+                bitrate: str = '192'
             youtube_dl_options: Dict[str, Any] = {
                 'format': 'bestaudio/best',
                 'noplaylist': 'False',
@@ -128,6 +141,7 @@ class Audio():
                 'options': '-vn'
             }
             loop: AbstractEventLoop = asyncio.get_event_loop()
+
             if url:
                 data = await loop.run_in_executor(None, lambda: youtube_dl.YoutubeDL(youtube_dl_options).extract_info(url, download=False))
             elif search:
@@ -135,20 +149,67 @@ class Audio():
                 videos = query.get('entries')
                 data = videos.pop(0)
             else:
-                raise Exception('No source provided.')
-
-            location: str = data.get('url')
-            title: str = data.get('title')
-            bitrate: str = data.get('abr')
-            #thumbnail: str = data['thumbnails'][0]['url']
+                return None
             
-            audio_data: FFmpegAudio = discord.FFmpegPCMAudio(location, **ffmpeg_options)
+            audio_data: FFmpegAudio = discord.FFmpegPCMAudio(data.get('url'), **ffmpeg_options)
             source = discord.PCMVolumeTransformer(audio_data)
 
-            await _client.change_presence(activity=discord.Game(title))
+            request: self.AudioRequest = self.AudioRequest(
+                title=data.get('title'),
+                url=data.get('url'),
+                webpage_url=data.get('webpage_url'),
+                channel=data.get('channel'),
+                bitrate=data.get('abr'),
+                thumbnail=data.get('thumbnail'),
+                source=source,
+            )
+            self.request_queue.put(request)
 
-            after: Callable[[Exception], Any] = lambda error: print(error) if error else None
-            self.voice_client.play(source=source, after=after)
+            embed: discord.Embed = discord.Embed()
+            embed.set_author(name=_message.author.display_name, icon_url=_message.author.avatar_url)
+            embed.title = request.title
+            embed.url = request.webpage_url
+            embed.description = request.channel
+            embed.set_image(url=request.thumbnail)
+            embed.timestamp = _message.created_at
+            embed.color = discord.Colour.from_rgb(r=255, g=0, b=0)
+            await _message.channel.send(embed=embed)
+
+        except:
+            raise
+
+    async def play(self, *, _client: discord.Client, _message: discord.Message, url: str=None, search:str=None, channel: str=None):
+        """
+        *[BETA]* Play audio from a YouTube video.
+
+        Parameters:
+            - url: The url of the source video to play
+        """
+        try:
+            await self.connect(_client=_client, _message=_message, channel=channel)
+        except discord.ClientException:
+            pass
+        except Exception:
+            raise
+        
+        try:
+            def play_next(error):
+                if error:
+                    print(error)
+                if self.request_queue.qsize() == 0:
+                    loop: asyncio.AbstractEventLoop = self.voice_client.loop
+                    loop.create_task(self.voice_client.disconnect())
+                    return
+                next_request: self.AudioRequest = self.request_queue.get()
+                self.voice_client.play(next_request.source, after=play_next)
+
+            # queue the requested content
+            request: self.AudioRequest = await self.queue(_client=_client, _message=_message, url=url, search=search)
+
+            if self.voice_client.is_playing():
+                return
+
+            play_next(None)
 
         except TypeError:
             # TODO: 
