@@ -1,9 +1,9 @@
 import discord
 from router.command import Command
 
-class Help:
+class Info:
     """
-    Provides information on available modules.
+    Provides information about the client.
     """
 
     def __init__(self):
