@@ -1,3 +1,4 @@
+from typing import Dict
 import discord
 from router.command import Command
 
@@ -8,6 +9,13 @@ class Info:
 
     def __init__(self):
         pass
+
+    async def about(self, *, _message: str, _features: Dict[str, str]):
+        embed = discord.Embed()
+        features: list(str) = [acronym for acronym, name in _features.items()]
+        embed.add_field(name='Handler Features', value='\n'.join(features), inline=False)
+        embed.timestamp = _message.created_at
+        await _message.channel.send(embed=embed)
 
     async def help(self, *, _message: str, _components: dict, component: str=None):
         """

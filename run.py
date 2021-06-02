@@ -98,6 +98,7 @@ try:
             '_logger': logger,
             '_components': handler._components,
             '_client': client,
+            '_features': handler.features,
         }
         
         try:
