@@ -63,7 +63,7 @@ try:
     # initialize client object
     client = discord.Client(intents=discord.Intents.all())
     # initialize Settings
-    settings = Settings()
+    settings = Settings('config')
     # initialize Handler
     handler = Handler()
     # load modules folder
