@@ -66,6 +66,12 @@ class Audio():
             self.source = source
 
     async def connect(self, *, _client: discord.Client, _message: discord.Message, channel: str=None):
+        """
+        Joins the bot client to a voice channel.
+
+        Parameters:
+            - channel: The voice channel to join. Accepts a raw Channel ID or a Channel mention. Joins the channel of the command author if not provided.
+        """
         try:
             # if the user specified a voice channel to use
             if channel:
@@ -103,6 +109,7 @@ class Audio():
 
     async def disconnect(self, *, _client: discord.Client, _message: discord.Message):
         """
+        Disconnects the bot from the joined voice channel.
         """
         try:
             if not self.voice_client:
@@ -116,7 +123,14 @@ class Audio():
         except:
             await self.voice_client.disconnect(force=True)
 
-    async def queue(self, *, _client: discord.Client, _message: discord.Message, url: str=None, search:str=None) -> AudioRequest:
+    async def queue(self, *, _client: discord.Client, _message: discord.Message, url: str=None, search:str=None):
+        """
+        Add source media to the media queue.
+
+        Parameters:
+            - url: A URL link to a YouTube video to add to the queue.
+            - search: Search terms to query YouTube for a source video.
+        """
         try:
             if self.voice_client:
                 bitrate: str = str(self.voice_client.channel.bitrate/1000)
@@ -149,7 +163,7 @@ class Audio():
                 videos = query.get('entries')
                 data = videos.pop(0)
             else:
-                return None
+                return
             
             audio_data: FFmpegAudio = discord.FFmpegPCMAudio(data.get('url'), **ffmpeg_options)
             source = discord.PCMVolumeTransformer(audio_data)
@@ -181,10 +195,12 @@ class Audio():
 
     async def play(self, *, _client: discord.Client, _message: discord.Message, url: str=None, search:str=None, channel: str=None):
         """
-        *[BETA]* Play audio from a YouTube video.
+        Play audio from a YouTube video.
 
         Parameters:
-            - url: The url of the source video to play
+            - url: A URL link to a YouTube video to add to the queue.
+            - search: Search terms to query YouTube for a source video.
+            - channel: The voice channel to join. Accepts a raw Channel ID or a Channel mention. Joins the channel of the command author if not provided.
         """
         try:
             await self.connect(_client=_client, _message=_message, channel=channel)
@@ -205,7 +221,7 @@ class Audio():
                 self.voice_client.play(next_request.source, after=play_next)
 
             # queue the requested content
-            request: self.AudioRequest = await self.queue(_client=_client, _message=_message, url=url, search=search)
+            await self.queue(_client=_client, _message=_message, url=url, search=search)
 
             if self.voice_client.is_playing():
                 return
