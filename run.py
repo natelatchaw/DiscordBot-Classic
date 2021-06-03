@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Type
 import discord
 import discord.ext
@@ -57,7 +57,7 @@ async def archive_message(message: discord.Message):
 
 try:
     # get the time the bot was initialized
-    instantiated_time = datetime.now()
+    instantiated_time = datetime.now(tz=timezone.utc)
     # get the event loop
     loop = asyncio.get_event_loop()
     # initialize client object
@@ -99,6 +99,7 @@ try:
             '_components': handler._components,
             '_client': client,
             '_features': handler.features,
+            '_instantiated_time': instantiated_time,
         }
         
         try:
