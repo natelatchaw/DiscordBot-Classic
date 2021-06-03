@@ -43,7 +43,7 @@ async def print_login_message(settings: Settings):
 
 async def print_logout_message(settings: Settings):
     if client.user:
-        shutdown_message = f'Bot client {client.user.mention} shutting down. Runtime: {round((datetime.now() - instantiated_time).total_seconds(), 1)}s'
+        shutdown_message = f'Bot client {client.user.mention} shutting down. Runtime: {round((datetime.now(tz=timezone.utc) - instantiated_time).total_seconds(), 1)}s'
         for guild in client.guilds:
             logger: Logger = ChannelLogger(settings, guild)
             await logger.print(shutdown_message)
