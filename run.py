@@ -36,7 +36,7 @@ class ChannelLogger(Logger):
 
 async def print_login_message(settings: Settings):
     if client.user:
-        startup_message = f'Bot client {client.user.mention} initialized in {round((datetime.now() - instantiated_time).total_seconds(), 1)}s'
+        startup_message = f'Bot client {client.user.mention} initialized in {round((datetime.now(tz=timezone.utc) - instantiated_time).total_seconds(), 1)}s'
         for guild in client.guilds:
             logger: Logger = ChannelLogger(settings, guild)
             await logger.print(startup_message)
