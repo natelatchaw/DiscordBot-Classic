@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 import time
 import re
 import os
+from typing import List
 import discord
 import requests
 import matplotlib.pyplot as pyplot
@@ -44,13 +45,12 @@ class Archive():
         Parameters:
             - user: Specify a user to filter the messages by.
         """
-        if user:
-            username = user.strip('@')
-            for mentioned_member in _message.mentions:
-                if mentioned_member.name == username:
-                    target_member = mentioned_member
-        else:
-            target_member = None
+        try:
+            user_id: int = int(user)
+            members: List[discord.Member] = _message.channel.guild.members
+            target_member: discord.Member = [member for member in members if member.id == user_id].pop(0)
+        except (NameError, TypeError):
+            target_member: discord.Member = None
         count = await _archiver.get_count(member=target_member)
         await _message.channel.send(f'{count} messages archived in {_message.channel.mention}')
 
