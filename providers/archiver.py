@@ -1,3 +1,4 @@
+from typing import List
 import discord
 import sqlite3
 import os
@@ -86,9 +87,9 @@ class Archiver():
         except sqlite3.IntegrityError as integrityError:
             print(f'Message {message.id}: {integrityError.args}')
 
-    async def select(self):
+    async def select(self, columns: List[str] = ['MESSAGE_ID']):
         select_statement = f'''
-            SELECT MESSAGE_ID FROM CHANNEL{self._channel.id}
+            SELECT {', '.join(columns)} FROM CHANNEL{self._channel.id}
         '''
         self._cursor.execute(select_statement)
         # fetch the all rows
