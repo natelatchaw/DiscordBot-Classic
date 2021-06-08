@@ -54,10 +54,13 @@ class Generation():
         while next_word is not None and len(generated) < 15:
             previous_word: str = generated[-1]
             potential_words: Dict[str, int] = dictionary.get(previous_word)
-            filtered_words = [word for word, word_count in potential_words.items() if (dictionary.get(word))]
-            selected_word: str = numpy.random.choice(filtered_words)
-            next_word: str = selected_word
-            generated.append(next_word)
+            try:
+                filtered_words = [word for word, word_count in potential_words.items() if (dictionary.get(word))]
+                selected_word: str = numpy.random.choice(filtered_words)
+                next_word: str = selected_word
+                generated.append(next_word)
+            except ValueError:
+                next_word = None
         
         message_content: str = ' '.join(generated)
 
