@@ -48,7 +48,7 @@ class Info:
                         embed.add_field(name=command_name, value=command.doc, inline=False)
                     else:
                         embed.add_field(name=command_name, value='Command documentation unavailable', inline=False)
-                embed.timestamp = time()
+                embed.timestamp = datetime.now(tz=timezone.utc)
             except KeyError:
                 await _message.channel.send(f'Could not find a component named **{component}**')
                 return
@@ -61,6 +61,6 @@ class Info:
                     embed.add_field(name=component.name, value=component.doc, inline=False)
                 else:
                     embed.add_field(name=component.name, value='Component documentation unavailable', inline=False)
-            embed.timestamp = time()
+            embed.timestamp = datetime.now(tz=timezone.utc)
 
         await _message.channel.send(embed=embed)
