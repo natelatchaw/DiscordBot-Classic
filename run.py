@@ -1,38 +1,17 @@
 import asyncio
 from datetime import datetime, timezone
-from typing import Type
+
 import discord
 import discord.ext
-from discord.state import logging_coroutine
-from router.error.handler import ComponentLookupError, HandlerError
-from router.settings import Settings
+from router.error.configuration import ConfigurationError
+from router.error.handler import HandlerError
 from router.handler import Handler
 from router.logger import Logger
+from router.settings import Settings
+
+from loggers.channel_logger import ChannelLogger
 from providers.archiver import Archiver
-from router.error.configuration import ConfigurationError
-from router.error.component import ComponentError
 
-class ChannelLogger(Logger):
-
-    def __init__(self, settings: Settings, guild: discord.Guild):
-        super().__init__(settings)
-        self.guild = guild
-
-    async def print(self, *args):
-        if not self.guild:
-            return
-
-        message = '\n'.join(args)
-        try:
-            # get the logging channel id from the config
-            channel_id: int = self.settings.logging_channel
-        except ConfigurationError:
-            return
-        # get the channel object from the channel id
-        logging_channel = self.guild.get_channel(channel_id)
-        if not isinstance(logging_channel, discord.TextChannel):
-            return
-        await logging_channel.send(f'{message}')
 
 async def print_login_message(settings: Settings):
     if client.user:
@@ -113,6 +92,7 @@ try:
         except HandlerError as handlerError:
             await message.channel.send(handlerError.internal_error)
         except Exception as exception:
+            raise
             if str(exception) is not None:
                 # send error message
                 await message.channel.send(exception)
