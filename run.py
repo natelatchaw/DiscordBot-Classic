@@ -92,7 +92,8 @@ try:
         except HandlerError as handlerError:
             await message.channel.send(handlerError.internal_error)
         except Exception as exception:
-            raise
+            if settings.mode == 'development':
+                raise
             if str(exception) is not None:
                 # send error message
                 await message.channel.send(exception)
