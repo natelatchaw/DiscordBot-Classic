@@ -1,15 +1,21 @@
+import time
 from operator import length_hint
 import random
-from typing import Counter, Dict, List, Tuple
+from typing import Dict, List, Set, Tuple
 import discord
 from discord import message
+from nltk.stem.wordnet import WordNetLemmatizer
 import numpy
 from providers.archiver import Archiver
+import nltk
+from nltk.corpus import stopwords
 
 class Generation():
 
     def __init__(self):
-        pass
+        if not nltk.download(info_or_id='all', download_dir='./nltk', quiet=True):
+            raise Exception('Failed to download NLTK data.')
+        nltk.data.path.append('./nltk')
 
     async def emulate(self, *, _message: discord.Message, _archiver: Archiver, user: str = None):
         print(user)
@@ -24,6 +30,19 @@ class Generation():
 
         messages: List[Tuple[int, str]] = await _archiver.select(['AUTHOR_ID', 'CONTENT'])
         user_messages: List[str] = [content for author_id, content in messages if user_id == author_id]
+        corpus: str = '\n'.join(user_messages)
+
+        lemmatizer: WordNetLemmatizer = WordNetLemmatizer()
+        stop_words: Set[str] = set(stopwords.words('english'))
+
+        
+        tokens: List[str] = nltk.sent_tokenize(corpus, language='english')
+        tokens: List[str] = [lemmatizer.lemmatize(word=word.lower()) for word in tokens if word not in stop_words]
+        tokens: List[str] = [word.lower() for word in tokens if len(word) > 1]
+
+        print(tokens)
+
+        return
         array: List[List[str]] = [content.split() for content in user_messages]
 
         dictionary: Dict[str, Dict[str, int]] = dict()
@@ -69,7 +88,13 @@ class Generation():
 
         await _message.channel.send(message_content)
 
-
-
-
-        
+    async def corpus(self, *, _message: discord.Message):
+        try:
+            sentences: List[List[str]] = [' '.join(sentence) for sentence in nltk.corpus.gutenberg.sents('shakespeare-caesar.txt')]
+            # sentences: List[str] = nltk.sent_tokenize(nltk.corpus.gutenberg.words('shakespeare-caesar.txt'))
+            for sentence in sentences:
+                time.sleep(1)
+                print(sentence)
+                await _message.channel.send(sentence)
+        except TypeError as exception:
+            raise
