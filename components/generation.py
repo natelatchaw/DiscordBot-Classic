@@ -1,3 +1,4 @@
+from datetime import datetime
 import time
 from operator import length_hint
 import random
@@ -23,6 +24,8 @@ class Generation():
 
         try:
             user_id: int = int(user)
+            members: List[discord.Member] = _message.guild.members
+            author: discord.Member = [member for member in members if member.id == user_id].pop(0)
         except NameError:
             await _message.channel.send(f'{user} is not a valid user.')
             return
@@ -69,7 +72,13 @@ class Generation():
         
         message_content: str = ' '.join(generated)
         message_content = message_content[:1999]
-        await _message.channel.send(message_content)
+
+        embed: discord.Embed = discord.Embed()
+        embed.set_author(name=author.display_name, icon_url=author.avatar_url)
+        embed.description = message_content
+        embed.timestamp = datetime.now()
+
+        await _message.channel.send(embed=embed)
 
     async def emulate_beta(self, *, _message: discord.Message, _archiver: Archiver, user: str = None):
         await _archiver.fetch()
@@ -80,6 +89,8 @@ class Generation():
 
         try:
             user_id: int = int(user)
+            members: List[discord.Member] = _message.guild.members
+            author: discord.Member = [member for member in members if member.id == user_id].pop(0)
         except NameError:
             await _message.channel.send(f'{user} is not a valid user.')
             return
@@ -129,7 +140,14 @@ class Generation():
                 next_word = None
         
         message_content: str = ' '.join(generated)
-        await _message.channel.send(message_content)
+        message_content = message_content[:1999]
+
+        embed: discord.Embed = discord.Embed()
+        embed.set_author(name=author.display_name, icon_url=author.avatar_url)
+        embed.description = message_content
+        embed.timestamp = datetime.now()
+
+        await _message.channel.send(embed=embed)
 
     async def corpus(self, *, _message: discord.Message):
         try:
