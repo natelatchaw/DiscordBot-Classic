@@ -68,6 +68,7 @@ class Generation():
                 next_word = None
         
         message_content: str = ' '.join(generated)
+        message_content = message_content[:1999]
         await _message.channel.send(message_content)
 
     async def emulate_beta(self, *, _message: discord.Message, _archiver: Archiver, user: str = None):
