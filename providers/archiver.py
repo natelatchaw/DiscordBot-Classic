@@ -110,13 +110,15 @@ class Archiver():
         except TypeError:
             newest_message_snowflake = None
 
-        # iterate through all channel messages older than oldest message in database (if available)
-        async for message in self._channel.history(limit=limit, before=oldest_message_snowflake):
-            await self.insert(message)
-
-        # iterate through all channel messages newer than newest message in database (if available)
-        async for message in self._channel.history(limit=limit, after=newest_message_snowflake):
-            await self.insert(message)
+        try:
+            # iterate through all channel messages older than oldest message in database (if available)
+            async for message in self._channel.history(limit=limit, before=oldest_message_snowflake):
+                await self.insert(message)
+            # iterate through all channel messages newer than newest message in database (if available)
+            async for message in self._channel.history(limit=limit, after=newest_message_snowflake):
+                await self.insert(message)
+        except discord.errors.Forbidden:
+            raise Exception(f'Missing access for channel #{self._channel.name}')
 
     async def get_oldest(self):
         # assemble select statement
