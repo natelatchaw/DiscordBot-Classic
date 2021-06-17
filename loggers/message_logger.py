@@ -13,4 +13,4 @@ class MessageLogger(Logger):
     async def print(self, message: discord.Message):
         message_content: str = message.clean_content
         content: str = message_content[:77] + '...' if len(message_content) > 80 else message_content
-        print(f'{message.author.display_name:<20} {message.channel.name:<20} {content:<80}')
+        print(f'{message.author.display_name:<20} #{message.channel.name:<20} {content:<80}')
