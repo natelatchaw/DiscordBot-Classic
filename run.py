@@ -43,10 +43,10 @@ async def archive_channels(client: discord.Client):
             archiver: Archiver = Archiver(text_channel)
             try:
                 await archiver.create()
-                print(f'Archiving channel #{text_channel.name}...')
                 await archiver.fetch()
+                print(f'#{text_channel.name} archived')
             except Exception as exception:
-                print(exception)
+                print(f'#{text_channel.name} archive failed: {exception}')
 
 try:
     # get the time the bot was initialized
@@ -67,6 +67,7 @@ try:
         # startup tasks
         print(f'{client.user.name} loaded in {settings.mode} mode.')
         await print_login_message(settings)
+        print(f'Beginning archive task.')
         await archive_channels(client)
         print(f'Archive task completed.')
 
