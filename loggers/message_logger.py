@@ -11,6 +11,7 @@ class MessageLogger(Logger):
         self.guild = guild
 
     async def print(self, message: discord.Message):
-        message_content: str = message.clean_content
-        content: str = message_content[:77] + '...' if len(message_content) > 80 else message_content
-        print(f'{message.author.display_name:<20} #{message.channel.name:<20} {content:<80}')
+        author: str = message.author.display_name[:17] + '...' if len(message.author.display_name) > 20 else message.author.display_name
+        channel: str = message.channel.name[:17] + '...' if len(message.channel.name) > 20 else message.channel.name
+        content: str = message.clean_content[:77] + '...' if len(message.clean_content) > 80 else message.clean_content
+        print(f'{author:<20} #{channel:<20} {content:<80}')
