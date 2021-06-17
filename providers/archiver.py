@@ -85,7 +85,8 @@ class Archiver():
             self._connection.commit()
         # catch integrity errors (UNIQUE constraints, etc.)
         except sqlite3.IntegrityError as integrityError:
-            print(f'Message {message.id}: {integrityError.args}')
+            ##print(f'Message {message.id}: {integrityError.args}')
+            pass
 
     async def select(self, columns: List[str] = ['MESSAGE_ID']):
         select_statement = f'''
