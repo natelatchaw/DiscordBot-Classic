@@ -101,8 +101,8 @@ try:
             # handle message
             await handler.process(settings.prefix, message.content, optionals=optionals)
             await message_logger.print(message)
-        except Exception:
-            raise
+        ##except Exception:
+            ##raise
         except ConfigurationError as configurationError:
             print(configurationError)
         except TypeError as typeError:
