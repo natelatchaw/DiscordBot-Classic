@@ -3,14 +3,13 @@ from router.error.configuration import ConfigurationError
 from router.logger import Logger
 from router.settings import Settings
 
-
 class ChannelLogger(Logger):
 
     def __init__(self, settings: Settings, guild: discord.Guild):
         super().__init__(settings)
         self.guild = guild
 
-    async def print(self, *args):
+    async def print(self, *args, **kwargs):
         if not self.guild:
             return
 

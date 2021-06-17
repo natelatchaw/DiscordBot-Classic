@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime, timezone
+from loggers.message_logger import MessageLogger
 
 import discord
 import discord.ext
@@ -55,7 +56,7 @@ try:
         await print_login_message(settings)
 
     @client.event
-    async def on_message(message):
+    async def on_message(message: discord.Message):
         # filter non-message objects
         if not isinstance(message, discord.Message):
             raise TypeError('Received an object that is not a message.')
@@ -65,16 +66,20 @@ try:
         except:
             archiver = None
         try:
-            logger: ChannelLogger = ChannelLogger(settings, message.guild)
+            channel_logger: ChannelLogger = ChannelLogger(settings, message.guild)
         except:
-            logger = None
+            channel_logger = None
+        try:
+            message_logger: MessageLogger = MessageLogger(settings, message.guild)
+        except:
+            message_logger = None
 
         # initialize optionals to pass to handler
         optionals: dict = {
             '_message': message,
             '_settings': settings,
             '_archiver': archiver,
-            '_logger': logger,
+            '_logger': channel_logger,
             '_components': handler._components,
             '_client': client,
             '_features': handler.features,
@@ -84,6 +89,9 @@ try:
         try:
             # handle message
             await handler.process(settings.prefix, message.content, optionals=optionals)
+            await message_logger.print(message)
+        except Exception:
+            raise
         except ConfigurationError as configurationError:
             print(configurationError)
         except TypeError as typeError:
