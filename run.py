@@ -1,5 +1,8 @@
 import asyncio
 from datetime import datetime, timezone
+from typing import List
+from shortcutHandler import Shortcut, ShortcutHandler
+from parameterHandler import ParameterHandler
 from loggers.message_logger import MessageLogger
 
 import discord
@@ -49,6 +52,10 @@ async def archive_channels(client: discord.Client):
                 print(f'#{text_channel.name} archive failed: {exception}')
 
 try:
+    shortcuts: List[Shortcut] = [
+        Shortcut('p', 'play', 'search'),
+    ]
+
     # get the time the bot was initialized
     instantiated_time = datetime.now(tz=timezone.utc)
     # get the event loop
@@ -58,7 +65,7 @@ try:
     # initialize Settings
     settings = Settings('config')
     # initialize Handler
-    handler = Handler()
+    handler = ShortcutHandler(shortcuts)
     # load modules folder
     handler.load(settings.components)
 
@@ -106,8 +113,8 @@ try:
             # handle message
             await handler.process(settings.prefix, message.content, optionals=optionals)
             await message_logger.print(message)
-        ##except Exception:
-            ##raise
+        except Exception:
+            raise
         except ConfigurationError as configurationError:
             print(configurationError)
         except TypeError as typeError:
