@@ -1,7 +1,6 @@
 import asyncio
 from asyncio.events import AbstractEventLoop
-from platform import platform
-from typing import Any, Callable, Dict, List, final
+from typing import Any, Dict, List
 from queue import Queue
 
 import discord
@@ -41,8 +40,23 @@ class Audio():
     def voice_client(self, voice_client: discord.VoiceClient):
         self._voice_client = voice_client
 
+    @property
+    def loop(self) -> AbstractEventLoop:
+        try:
+            return asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            return asyncio.get_event_loop()
+
     def __init__(self):
-        pass
+        try:
+            self._loop = asyncio.get_event_loop()
+        except RuntimeError as ex:
+            # if "There is no current event loop in thread" in str(ex):
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            self._loop = asyncio.get_event_loop()
 
     class AudioLogger():
         def debug(self, message):
@@ -154,19 +168,19 @@ class Audio():
             ffmpeg_options: Dict[str, str] = {
                 'options': '-vn'
             }
-            loop: AbstractEventLoop = asyncio.get_event_loop()
 
             if url:
-                data = await loop.run_in_executor(None, lambda: youtube_dl.YoutubeDL(youtube_dl_options).extract_info(url, download=False))
+                data = await self.loop.run_in_executor(None, lambda: youtube_dl.YoutubeDL(youtube_dl_options).extract_info(url, download=False))
             elif search:
-                query = await loop.run_in_executor(None, lambda: youtube_dl.YoutubeDL(youtube_dl_options).extract_info(f'ytsearch:{search}', download=False))
+                query = await self.loop.run_in_executor(None, lambda: youtube_dl.YoutubeDL(youtube_dl_options).extract_info(f'ytsearch:{search}', download=False))
                 videos = query.get('entries')
                 data = videos.pop(0)
             else:
                 return
             
-            audio_data: FFmpegAudio = discord.FFmpegPCMAudio(data.get('url'), **ffmpeg_options)
-            source = discord.PCMVolumeTransformer(audio_data)
+            #audio_data: FFmpegAudio = discord.FFmpegPCMAudio(data.get('url'), **ffmpeg_options)
+            #source = discord.PCMVolumeTransformer(audio_data)
+            source: AudioSource = discord.FFmpegOpusAudio(data.get('url'))
 
             request: self.AudioRequest = self.AudioRequest(
                 title=data.get('title'),
@@ -210,15 +224,15 @@ class Audio():
             raise
         
         try:
+            # define the play_next function
             def play_next(error):
                 if error:
                     print(error)
-                if self.request_queue.qsize() == 0:
-                    loop: asyncio.AbstractEventLoop = self.voice_client.loop
-                    loop.create_task(self.voice_client.disconnect())
-                    return
-                next_request: self.AudioRequest = self.request_queue.get()
-                self.voice_client.play(next_request.source, after=play_next)
+                elif self.request_queue.qsize() == 0:
+                    self.loop.create_task(self.voice_client.disconnect())
+                else:
+                    next_request: self.AudioRequest = self.request_queue.get()
+                    self.voice_client.play(next_request.source, after=play_next)
 
             # queue the requested content
             await self.queue(_client=_client, _message=_message, url=url, search=search)
