@@ -26,7 +26,7 @@ class Shortcut():
         self._command_name = command_name
         self._parameter = parameter
 
-class ShortcutHandler(Handler):
+class ShortcutHandler(ParameterHandler):
 
     @property
     def features(self) -> Dict[str, str]:
@@ -41,24 +41,23 @@ class ShortcutHandler(Handler):
         return self._shortcuts
     
     def __init__(self, shortcuts: List[Shortcut]):
-        self.parameterHandler = ParameterHandler()
         self._shortcuts = shortcuts
         super().__init__()
 
     def load(self, components_folder: pathlib.Path):
-        return self.parameterHandler.load(components_folder=components_folder)
+        return super().load(components_folder=components_folder)
 
     def package(self, module: pathlib.Path) -> List[Component]:
-        return self.parameterHandler.package(module)
+        return super().package(module)
 
     def add(self, component: Component):
-        return self.parameterHandler.add(component)
+        return super().add(component)
 
     def get(self, command_name: str) -> Component:
-        return self.parameterHandler.get(command_name)
+        return super().get(command_name)
 
     async def run(self, command_name: str, args: List, kwargs: Dict[str, str], optionals: Dict[str, object]):
-        return await self.parameterHandler.run(command_name, args, kwargs, optionals=optionals)
+        return await super().run(command_name, args=args, kwargs=kwargs, optionals=optionals)
 
     async def process(self, prefix: str, message: str, *, optionals: Dict[str, object]):
         try:
@@ -86,10 +85,10 @@ class ShortcutHandler(Handler):
                 kwargs: Dict[str, str] = dict()
                 kwargs[shortcut.parameter] = command_parts[1]
                 # run shortcutted command with kwargs
-                await self.parameterHandler.run(shortcut.command_name, args=list(), kwargs=kwargs, optionals=optionals)
+                await super().run(shortcut.command_name, args=list(), kwargs=kwargs, optionals=optionals)
             else:
                 # default to parameter handling
-                await self.parameterHandler.process(prefix, message, optionals=optionals)
+                await super().process(prefix, message, optionals=optionals)
 
         
         # if the message doesn't start with a prefix

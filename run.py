@@ -66,6 +66,7 @@ try:
     settings = Settings('config')
     # initialize Handler
     handler = ShortcutHandler(shortcuts)
+    #handler = ParameterHandler()
     # load modules folder
     handler.load(settings.components)
 
