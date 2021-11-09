@@ -137,7 +137,7 @@ class Audio():
         except:
             await self.voice_client.disconnect(force=True)
 
-    async def queue(self, *, _client: discord.Client, _message: discord.Message, url: str=None, search:str=None):
+    async def queue(self, *, _client: discord.Client, _message: discord.Message, url: str=None, search:str=None, speed:str=None):
         """
         Add source media to the media queue.
 
@@ -147,17 +147,20 @@ class Audio():
         """
         try:
             if self.voice_client:
-                bitrate: str = str(self.voice_client.channel.bitrate/1000)
+                #bitrate: str = str(self.voice_client.channel.bitrate/1000)
+                pass
             else:
-                bitrate: str = '192'
+                #bitrate: str = '192'
+                pass
             youtube_dl_options: Dict[str, Any] = {
                 'format': 'bestaudio/best',
-                'noplaylist': 'False',
+                'noplaylist': True,
+                'age_limit': 18,
                 'postprocessors': [
                     {
                         'key': 'FFmpegExtractAudio',
                         'preferredcodec': 'opus',
-                        'preferredquality': bitrate,
+                        # 'preferredquality': bitrate,
                     },
                 ],
                 'logger': self.AudioLogger(),
@@ -178,9 +181,20 @@ class Audio():
             else:
                 return
             
+            try:
+                if speed is None:
+                    raise ValueError("No speed provided.")
+                multiplier: float = float(speed)
+                if multiplier < 0.5 or multiplier > 2.0:
+                    raise ValueError("Invalid speed setting.")
+                options = f'-filter:a \"atempo={multiplier}\"'
+                print(options)
+            except ValueError:
+                options = None
+
             #audio_data: FFmpegAudio = discord.FFmpegPCMAudio(data.get('url'), **ffmpeg_options)
             #source = discord.PCMVolumeTransformer(audio_data)
-            source: AudioSource = discord.FFmpegOpusAudio(data.get('url'))
+            source: AudioSource = discord.FFmpegOpusAudio(data.get('url'), options=options)
 
             request: self.AudioRequest = self.AudioRequest(
                 title=data.get('title'),
@@ -207,7 +221,7 @@ class Audio():
         finally:
             await _message.delete()
 
-    async def play(self, *, _client: discord.Client, _message: discord.Message, url: str=None, search:str=None, channel: str=None):
+    async def play(self, *, _client: discord.Client, _message: discord.Message, url: str=None, search:str=None, channel:str=None, speed:str=None):
         """
         Play audio from a YouTube video.
 
@@ -235,7 +249,7 @@ class Audio():
                     self.voice_client.play(next_request.source, after=play_next)
 
             # queue the requested content
-            await self.queue(_client=_client, _message=_message, url=url, search=search)
+            await self.queue(_client=_client, _message=_message, url=url, search=search, speed=speed)
 
             if self.voice_client.is_playing():
                 return
@@ -262,3 +276,13 @@ class Audio():
             raise
         finally:
             await _client.change_presence(activity=None)
+
+    async def nightcore(self, *, _client: discord.Client, _message: discord.Message, url: str=None, search:str=None, channel:str=None, speed:str="1.25"):
+        """
+        Play source media with a 1.25x speed filter applied.
+
+        Parameters:
+            - url: A URL link to a YouTube video to add to the queue.
+            - search: Search terms to query YouTube for a source video.
+        """
+        await self.play(_client=_client, _message=_message, url=url, search=search, channel=channel, speed=speed)

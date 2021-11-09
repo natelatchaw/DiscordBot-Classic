@@ -15,8 +15,11 @@ from nltk.corpus import stopwords, wordnet
 class Generation():
 
     def __init__(self):
+        print(f'Attempting to update NLTK data...')
         if not nltk.download(info_or_id='all', download_dir='./nltk', quiet=True):
-            raise Exception('Failed to download NLTK data.')
+            raise Exception('Failed to update NLTK data.')
+        else:
+            print(f'Updated NLTK data.')
         nltk.data.path.append('./nltk')
 
     async def emulate(self, *, _message: discord.Message, _archiver: Archiver, user: str = None):
