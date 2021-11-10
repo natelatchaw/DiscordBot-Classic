@@ -161,7 +161,7 @@ class Audio():
                 await self.playback_event.wait()
 
                 # reset the playback event
-                self.playback_event = None
+                self.playback_event = asyncio.Event()
 
                 # if the voice client is still playing audio
                 if self.voice_client.is_playing():
