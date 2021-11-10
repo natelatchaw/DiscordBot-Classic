@@ -104,8 +104,34 @@ class Audio():
     def playback_queue(self, queue):
         self._queue = queue
 
+    @property
+    def timeout(self) -> float:
+        try:
+            self._timeout
+        except AttributeError:
+            self._timeout = None
+        finally:
+            return self._timeout
+    @timeout.setter
+    def timeout(self, timeout: float):
+        self._timeout = timeout
+
     def __init__(self):
         pass
+
+    async def set_timeout(self, *, _client: discord.Client, _message: discord.Message, amount: str = None):
+        try:
+            channel: discord.TextChannel = _message.channel
+            if amount is None:
+                self.timeout = None
+                await channel.send(f'Timeout disabled. Bot will not leave the voice channel after the queue is emptied.')
+            else:
+                self.timeout = float(amount)
+                # avoid leaving before playing initial song
+                await channel.send(f'Timeout set to {self.timeout} seconds. Bot will wait for this duration after the queue is empty before leaving the voice channel.')
+                if self.timeout == 0.0: self.timeout = 0.1
+        except ValueError as valueError:
+            await channel.send(valueError)
 
     async def start(self, _client: discord.Client):
         """
@@ -121,14 +147,11 @@ class Audio():
         while self.voice_client.is_connected():
 
             try:
-                # define timeout
-                timeout: float = 0.1 * 60
                 # wait for a request to be added, or the timeout duration to expire
-                self.request: self.AudioRequest = await asyncio.wait_for(self.playback_queue.get(), timeout=timeout, loop=self.loop)
+                self.request: self.AudioRequest = await asyncio.wait_for(self.playback_queue.get(), timeout=self.timeout, loop=self.loop)
 
                 # play the source content and set the event when done
-                self.voice_client.play(
-                    self.request.source, after=lambda _: self.loop.call_soon_threadsafe(self.playback_event.set))
+                self.voice_client.play(self.request.source, after=lambda _: self.loop.call_soon_threadsafe(self.playback_event.set))
 
                 # wait for the event to be set before continuing
                 await self.playback_event.wait()
@@ -143,7 +166,6 @@ class Audio():
 
             # if the wait_for event elapses
             except asyncio.TimeoutError:
-                print('Timed out')
                 # disconnect
                 await self.voice_client.disconnect()
                 break
@@ -153,7 +175,7 @@ class Audio():
                 break
 
             except Exception as exception:
-                print(f'loop exception: {exception}')
+                print(f'A playback loop exception occurred: {exception}')
                 continue
 
         self.request = None
@@ -175,8 +197,7 @@ class Audio():
                 # get a list of available voice channels
                 channels: List[discord.VoiceChannel] = _message.guild.voice_channels
                 # use the voice channel with a matching id
-                voice_channel: discord.VoiceChannel = next(
-                    (channel for channel in channels if channel.id == channel_id), None)
+                voice_channel: discord.VoiceChannel = next((channel for channel in channels if channel.id == channel_id), None)
                 if not voice_channel:
                     raise ValueError('The channel you specified is not valid for audio playback.')
 
