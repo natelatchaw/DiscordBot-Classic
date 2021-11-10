@@ -148,7 +148,11 @@ class Audio():
 
             try:
                 # wait for a request to be added, or the timeout duration to expire
-                self.request: self.AudioRequest = await asyncio.wait_for(self.playback_queue.get(), timeout=self.timeout, loop=self.loop)
+                self.request: self.AudioRequest = await asyncio.wait_for(self.playback_queue.get(), timeout=self.timeout)
+
+                # set the bot status to the currently playing request
+                activity: Game = Game(self.request.title)
+                await _client.change_presence(activity=activity, status=None)
 
                 # play the source content and set the event when done
                 self.voice_client.play(self.request.source, after=lambda _: self.loop.call_soon_threadsafe(self.playback_event.set))
@@ -308,9 +312,6 @@ class Audio():
                 source=source,
             )
             await self.playback_queue.put(request)
-
-            activity: Game = Game(request.title)
-            await _client.change_presence(activity=activity, status=None)
 
             embed: discord.Embed = discord.Embed()
             embed.set_author(name=_message.author.display_name, icon_url=_message.author.avatar_url)
