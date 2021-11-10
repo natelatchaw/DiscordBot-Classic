@@ -1,19 +1,11 @@
 import asyncio
-from asyncio import events
-from asyncio.events import AbstractEventLoop, Handle
+from asyncio.events import AbstractEventLoop
 from typing import Any, Dict, List
-from queue import Queue
-from typing_extensions import final
 
 import discord
-from discord import message
-from discord.activity import Activity, BaseActivity, Game
-from discord.channel import VoiceChannel
-from discord.utils import get
-from discord.voice_client import VoiceClient
 import youtube_dl
-from discord.errors import ClientException
-from discord.player import AudioSource, FFmpegAudio
+from discord.activity import Game
+from discord.player import AudioSource
 
 
 class Audio():
