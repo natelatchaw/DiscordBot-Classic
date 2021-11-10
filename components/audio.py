@@ -87,7 +87,6 @@ class Audio():
             self._event = asyncio.Event()
         finally:
             return self._event
-
     @playback_event.setter
     def playback_event(self, event: asyncio.Event):
         self._event = event
@@ -101,13 +100,41 @@ class Audio():
             self._queue = asyncio.Queue()
         finally:
             return self._queue
-
     @playback_queue.setter
     def playback_queue(self, queue):
         self._queue = queue
 
+    @property
+    def delay(self) -> float:
+        try:
+            self._delay
+        except AttributeError:
+            self._delay = None
+        finally:
+            return self._delay
+    @delay.setter
+    def delay(self, delay: float):
+        self._delay = delay
+
     def __init__(self):
         pass
+
+    async def set_delay(self, *, _client: discord.Client, _message: discord.Message, amount: str = None):
+        """
+        Sets the delay in seconds before audio commands are deleted.
+
+        Parameters:
+            - amount: The delay amount in seconds. Supports decimal precision.
+        """
+
+        channel: discord.TextChannel = _message.channel
+        if amount is None:
+            self.delay = None
+            await channel.send(f'Message deletion delay has been disabled.')
+        else:
+            self.delay = float(amount)
+            await channel.send(f'Message deletion delay has been set to {self.delay} seconds.')
+        await _message.delete(delay=self.delay)
 
     async def start(self, _client: discord.Client):
         """
@@ -168,6 +195,7 @@ class Audio():
         Parameters:
             - channel: The voice channel to join. Accepts a raw Channel ID or a Channel mention. Joins the channel of the command author if not provided.
         """
+
         try:
             # if the user specified a voice channel to use
             if channel:
@@ -205,11 +233,15 @@ class Audio():
             self.voice_client: discord.VoiceClient = await voice_channel.connect(reconnect=reconnect, timeout=timeout)
         except Exception:
             raise
+        finally:
+            # delete the command message
+            await _message.delete(delay=self.delay)
 
     async def disconnect(self, *, _client: discord.Client, _message: discord.Message):
         """
         Disconnects the bot from the joined voice channel.
         """
+
         try:
             if not self.voice_client:
                 raise ConnectionError('Cannot disconnect: Not connected to begin with.')
@@ -222,6 +254,9 @@ class Audio():
             raise
         except:
             await self.voice_client.disconnect(force=True)
+        finally:
+            # delete the command message
+            await _message.delete(delay=self.delay)
 
     async def queue(self, *, _client: discord.Client, _message: discord.Message, url: str = None, search: str = None, speed: str = None):
         """
@@ -231,6 +266,7 @@ class Audio():
             - url: A URL link to a YouTube video to add to the queue.
             - search: Search terms to query YouTube for a source video.
         """
+
         try:
             if self.voice_client:
                 #bitrate: str = str(self.voice_client.channel.bitrate/1000)
@@ -300,7 +336,8 @@ class Audio():
         except:
             raise
         finally:
-            await _message.delete()
+            # delete the command message
+            await _message.delete(delay=self.delay)
 
     async def skip(self, *, _client: discord.Client, _message: discord.Message):
         """
@@ -309,6 +346,8 @@ class Audio():
 
         # set the event flag
         self.loop.call_soon_threadsafe(self.playback_event.set)
+        # delete the command message
+        await _message.delete(delay=self.delay)
 
     async def play(self, *, _client: discord.Client, _message: discord.Message, url: str = None, search: str = None, channel: str = None, speed: str = None):
         """
@@ -353,7 +392,8 @@ class Audio():
             # VoiceClient.play() - Source is not opus encoded and opus is not loaded.
             raise
         finally:
-            pass
+            # delete the command message
+            await _message.delete(delay=self.delay)
 
     async def nightcore(self, *, _client: discord.Client, _message: discord.Message, url: str = None, search: str = None, channel: str = None, speed: str = '1.25'):
         """
