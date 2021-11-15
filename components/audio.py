@@ -1,3 +1,4 @@
+import os
 import asyncio
 from asyncio.events import AbstractEventLoop
 from typing import Any, Dict, List
@@ -64,6 +65,7 @@ class Audio():
     @property
     def loop(self) -> AbstractEventLoop:
         try:
+            return self.voice_client.loop
             return asyncio.get_event_loop()
         except RuntimeError:
             loop = asyncio.new_event_loop()
@@ -275,14 +277,18 @@ class Audio():
                 ],
             }
 
-            if url:
-                data = await self.loop.run_in_executor(None, lambda: youtube_dl.YoutubeDL(youtube_dl_options).extract_info(url, download=False))
-            elif search:
-                query = await self.loop.run_in_executor(None, lambda: youtube_dl.YoutubeDL(youtube_dl_options).extract_info(f'ytsearch:{search}', download=False))
-                videos = query.get('entries')
-                data = videos.pop(0)
-            else:
-                return
+            try:
+                if url:
+                    data = await self.loop.run_in_executor(None, lambda: youtube_dl.YoutubeDL(youtube_dl_options).extract_info(url, download=False))
+                elif search:
+                    query = await self.loop.run_in_executor(None, lambda: youtube_dl.YoutubeDL(youtube_dl_options).extract_info(f'ytsearch:{search}', download=False))
+                    videos = query.get('entries')
+                    data = videos.pop(0)
+                else:
+                    return
+            except youtube_dl.utils.DownloadError as downloadError:
+                await _message.channel.send(downloadError)
+                raise
 
             try:
                 if speed is None: raise ValueError('No speed provided.')
