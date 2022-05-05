@@ -20,7 +20,7 @@ class ParameterHandler(Handler):
         super().__init__()
 
     def load(self, components_folder: pathlib.Path):
-        return super().load(components_folder=components_folder)
+        return super().load(components_folder)
 
     def package(self, module: pathlib.Path) -> List[Component]:
         return super().package(module)

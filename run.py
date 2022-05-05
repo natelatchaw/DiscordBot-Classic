@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import List
 from shortcutHandler import Shortcut, ShortcutHandler
 from parameterHandler import ParameterHandler
@@ -68,7 +69,7 @@ try:
     handler = ShortcutHandler(shortcuts)
     #handler = ParameterHandler()
     # load modules folder
-    handler.load(settings.components)
+    handler.load(Path(settings.components))
 
     @client.event
     async def on_ready():
