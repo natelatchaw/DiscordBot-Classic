@@ -53,23 +53,24 @@ async def archive_channels(client: discord.Client):
                 print(f'#{text_channel.name} archive failed: {exception}')
 
 try:
-    shortcuts: List[Shortcut] = [
-        Shortcut('p', 'play', 'search'),
-    ]
-
     # get the time the bot was initialized
-    instantiated_time = datetime.now(tz=timezone.utc)
+    instantiated_time: datetime = datetime.now(tz=timezone.utc)
     # get the event loop
-    loop = asyncio.get_event_loop()
-    # initialize client object
-    client = discord.Client(intents=discord.Intents.all())
-    # initialize Settings
-    settings = Settings('config')
-    # initialize Handler
-    handler = ShortcutHandler(shortcuts)
-    #handler = ParameterHandler()
+    loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
+
+    # define discord client intents
+    intents: discord.Intents = discord.Intents.all()
+    # initialize discord client object
+    client: discord.Client = discord.Client(intents=intents)
+
+    # initialize settings data from configuration file
+    settings: Settings = Settings('config')
+    # get the components path reference defined in configuration
+    components_path: Path = Path(settings.components)
+    # initialize handler
+    handler = ParameterHandler()
     # load modules folder
-    handler.load(Path(settings.components))
+    handler.load(components_path)
 
     @client.event
     async def on_ready():
@@ -105,7 +106,7 @@ try:
             '_settings': settings,
             '_archiver': archiver,
             '_logger': channel_logger,
-            '_components': handler._components,
+            '_components': handler._registrations,
             '_client': client,
             '_features': handler.features,
             '_instantiated_time': instantiated_time,
@@ -115,15 +116,13 @@ try:
             # handle message
             await handler.process(settings.prefix, message.content, optionals=optionals)
             await message_logger.print(message)
-        except Exception:
-            raise
         except ConfigurationError as configurationError:
             print(configurationError)
         except TypeError as typeError:
             # archive failed
             print(typeError)
         except HandlerError as handlerError:
-            await message.channel.send(handlerError.internal_error)
+            await message.channel.send(handlerError.message)
         except Exception as exception:
             if settings.mode == 'development':
                 raise
@@ -144,7 +143,7 @@ try:
 # if TypeError or ValueError occurs
 except ConfigurationError as error:
     #raise
-    print(error.internal_error)
+    print(error.message)
 # if program is interrupted in console
 except KeyboardInterrupt as keyboardInterrupt:
     print(f'KeyboardInterrupt event occurred: {keyboardInterrupt}')
