@@ -189,7 +189,7 @@ class Audio():
                         'preferredcodec': 'opus',
                     },
                 ],
-                'logger': self.AudioLogger(),
+                'logger': AudioLogger(),
                 'progress_hooks': [ ],
             }
 
@@ -353,13 +353,13 @@ class AudioRequest():
 
 class AudioLogger():
     def debug(self, message: str):
-        logging.debug(message)
+        log.debug(message)
 
     def warning(self, message: str):
-        logging.warning(message)
+        log.warning(message)
         
     def error(self, message: str):
-        logging.error(message)
+        log.error(message)
 
 
 class AudioError(Exception):

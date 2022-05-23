@@ -2,21 +2,24 @@
 Contains components for long term data management and storage.
 """
 
-from datetime import datetime, timezone
-from discord import Message
 import logging
-import time
-import re
 import os
+import re
+import time
+from datetime import datetime, timezone
+from logging import Logger
 from typing import List
+
 import discord
-import requests
 import matplotlib.pyplot as pyplot
 import numpy
-from router.settings import Settings
-from router.logger import Logger
+import requests
+from discord import Message
 from providers.archiver import Archiver
+from settings import Settings
 
+
+log: Logger = logging.getLogger(__name__)
 
 class Archive():
     """
@@ -43,7 +46,7 @@ class Archive():
             # delete the command message
             await _message.delete()
         except discord.errors.Forbidden as error:
-            logging.error(error)
+            log.error(error)
 
     async def count(self, *, _message: discord.Message, _settings: Settings, _archiver: Archiver, _logger: Logger, user=None):
         """

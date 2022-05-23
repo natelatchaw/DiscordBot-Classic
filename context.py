@@ -6,8 +6,8 @@ from router.packaging import Package
 
 from settings import Settings
 
-class Context():
 
+class Context:
     @property
     def client(self) -> Client:
         return self._client
@@ -32,7 +32,15 @@ class Context():
     def packages(self) -> Dict[str, Package]:
         return self._packages
 
-    def __init__(self, client: Client, message: Message, settings: Settings, archiver: Archiver, timestamp: datetime, packages: Dict[str, Package]):
+    def __init__(
+        self,
+        client: Client,
+        message: Message,
+        settings: Settings,
+        archiver: Archiver,
+        timestamp: datetime,
+        packages: Dict[str, Package],
+    ):
         self._client: Client = client
         self._settings: Settings = settings
         self._archiver: Archiver = archiver

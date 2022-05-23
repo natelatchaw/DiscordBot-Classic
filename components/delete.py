@@ -3,6 +3,7 @@ import logging
 from typing import Any
 import discord
 import asyncio
+from context import Context
 from settings import Settings
 
 class Delete():
@@ -14,7 +15,7 @@ class Delete():
         self._logger: Logger = logging.getLogger(__name__)
         pass
 
-    async def delete(self, *, _message: discord.Message, _settings: Settings, limit: str=None, author: str=None):
+    async def delete(self, context: Context, *, limit: str=None, author: str=None):
         """
         Deletes messages from the text channel where the command is invoked. For example, for a limit of *n*, only the subset of the last *n* messages will be considered for deletion.
 
@@ -51,7 +52,7 @@ class Delete():
         # try to get the owner id from the config
         try:
             # get the message owner id
-            message_owner_id = str(_message.author.id)
+            message_owner_id = str(context.message.author.id)
         # if an error occurred retrieving the message owner id
         except ValueError:
             # set the message owner id to None
@@ -60,20 +61,20 @@ class Delete():
         # try to get the owner id from the config
         try:
             # get the bot owner id
-            bot_owner_id = str(_settings.owner)
+            bot_owner_id = str(context.settings.ux.owner)
         # if an error occurred retrieving the owner id
         except ValueError:
             # set the bot owner id to None
             bot_owner_id = None
 
         # if the message is from a DM
-        if isinstance(_message.channel, discord.DMChannel):
+        if isinstance(context.message.channel, discord.DMChannel):
             # use the message author as the server owner
-            server_owner_id = _message.author.id
+            server_owner_id = context.message.author.id
         # if the members intent is available
-        elif discord.Intents.members and _message.guild:
+        elif discord.Intents.members and context.message.guild:
             # get the guild owner id
-            server_owner_id = str(_message.guild.owner.id)
+            server_owner_id = str(context.message.guild.owner.id)
         # otherwise
         else:
             # set the guild owner id to None
@@ -86,14 +87,14 @@ class Delete():
         ]
         # if the message author is not in the whitelist
         if message_owner_id not in whitelist:
-            await self._logger.warn('You are not authorized to delete messages.', f'For message {_message.jump_url}')
-            raise ValueError(f'{_message.author.id} is not a whitelisted user ID.')
+            await self._logger.warning('You are not authorized to delete messages.', f'For message {context.message.jump_url}')
+            raise ValueError(f'{context.message.author.id} is not a whitelisted user ID.')
         # create empty list for messages to be added to
         messages = []
         # for each message in the channel's history
-        async for message in _message.channel.history(limit=limit+1):
+        async for message in context.message.channel.history(limit=limit+1):
             # if the message is the delete command message
-            if _message.id == message.id:
+            if context.message.id == message.id:
                 # skip it
                 continue
             # if the author was not specified
@@ -108,17 +109,17 @@ class Delete():
         message_count = len(messages)
         try:
             # delete every message in the messages list
-            await _message.channel.delete_messages(messages)
+            await context.message.channel.delete_messages(messages)
         except discord.errors.Forbidden as error:
-            self._logger.error(f'I am not authorized to delete messages in this server.', error)
+            self._logger.error(f'I am not authorized to delete messages.', error)
             return
         except Exception as error:
             self._logger.error(error)
         # send a summary message
-        summary_message = await _message.channel.send(f'{message_count} messages deleted.')
+        summary_message = await context.message.channel.send(f'{message_count} messages deleted.')
         # wait 3 seconds
         await asyncio.sleep(10)
         # delete the delete command
-        await _message.delete()
+        await context.message.delete()
         # delete the summary message
         await summary_message.delete()

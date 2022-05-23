@@ -1,4 +1,5 @@
 import discord
+from context import Context
 
 from settings import Settings
 
@@ -9,6 +10,23 @@ class Utility():
     
     def __init__(self, *args, **kwargs):
         pass
+
+    async def enable_verbose(self, context: Context):
+        """
+        Enables the verbose configuration flag.
+        """
+
+        context.settings.ux.verbose = True
+        await context.message.reply(f"Verbose mode {'enabled' if context.settings.ux.verbose else 'disabled'}")
+
+    async def disable_verbose(self, context: Context):
+        """
+        Disables the verbose configuration flag.
+        """
+
+        context.settings.ux.verbose = False
+        await context.message.reply(f"Verbose mode {'enabled' if context.settings.ux.verbose else 'disabled'}")
+
 
     async def set_log_channel(self, *, _message: discord.Message, _settings: Settings, reset: bool=False):
         """

@@ -1,45 +1,47 @@
 from multiprocessing.sharedctypes import Value
+from typing import Mapping, MutableMapping, Optional
 from router.configuration import Section
 
 
 class TokenSettings(Section):
-
     @property
-    def active(self) -> str | None:
-        defaults = self._parser.defaults()
-        key: str = 'token'
+    def active(self) -> str:
+        defaults: MutableMapping[str, str] = self._parser.defaults()
+        key: str = "token"
+        value: Optional[str] = None
         try:
-            value: str | None = defaults[key]
+            value = defaults[key]
         except KeyError:
-            defaults[key] = ''
-            value: str | None = None
+            defaults[key] = ""
 
         if value and isinstance(value, str):
             return value
         else:
-            defaults[key] = ''
+            defaults[key] = ""
             self.__write__()
-            raise ValueError(f'No label provided for {self._reference.name}:{self._name}:{key}')
+            raise ValueError(
+                f"No label provided for {self._reference.name}:{self._name}:{key}"
+            )
+
     @active.setter
     def active(self, value: str) -> None:
-        key: str = 'token'
-        defaults = self._parser.defaults()
+        key: str = "token"
+        defaults: MutableMapping[str, str] = self._parser.defaults()
         defaults[key] = value
 
-
     @property
-    def current(self) -> str | None:
-        key: str | None = self.active
+    def current(self) -> str:
+        key: str = self.active
+        value: Optional[str] = None
         try:
-            value: str | None = self[key]
+            value = self[key]
         except KeyError:
-            self[key] = ''
-            value: str | None = None
+            self[key] = ""
 
         if value and isinstance(value, str):
             return value
         else:
-            self[key] = ''
-            raise ValueError(f'No token provided for {self._reference.name}:{self._name}:{key}')
-
-    
+            self[key] = ""
+            raise ValueError(
+                f"No token provided for {self._reference.name}:{self._name}:{key}"
+            )
