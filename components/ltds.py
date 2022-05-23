@@ -1,4 +1,10 @@
+"""
+Contains components for long term data management and storage.
+"""
+
 from datetime import datetime, timezone
+from discord import Message
+import logging
 import time
 import re
 import os
@@ -11,21 +17,22 @@ from router.settings import Settings
 from router.logger import Logger
 from providers.archiver import Archiver
 
+
 class Archive():
     """
     Provides functionality for querying the local message database.
     """
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self._archivers = dict()
 
     async def fetch(self, *, _message: discord.Message, _settings: Settings, _archiver: Archiver, _logger: Logger):
         """
         Scans the message content of a text channel and copies data to the local message database.
         """
-        message_reference = await _message.channel.send(f'Beginning download...')
+        message_reference: Message = await _message.channel.send(f'Beginning download...')
         # record the time before fetch is run
-        start_time = datetime.now()
+        start_time: datetime = datetime.now()
         await _archiver.fetch()
         # record the time after fetch is run
         end_time = datetime.now()
@@ -36,7 +43,7 @@ class Archive():
             # delete the command message
             await _message.delete()
         except discord.errors.Forbidden as error:
-            await _logger.print(f'Could not delete command message {_message.id}', str(error))
+            logging.error(error)
 
     async def count(self, *, _message: discord.Message, _settings: Settings, _archiver: Archiver, _logger: Logger, user=None):
         """

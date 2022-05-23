@@ -1,13 +1,13 @@
 import discord
-from discord import channel
-from router.settings import Settings
+
+from settings import Settings
 
 class Utility():
     """
     Provides Discord-based access to bot configuration options.
     """
     
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         pass
 
     async def set_log_channel(self, *, _message: discord.Message, _settings: Settings, reset: bool=False):

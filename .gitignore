@@ -2,11 +2,15 @@
 .vscode
 
 # configuration
-config.ini
+*.ini
 
 # databases
 data/
 *.db
+
+# logs
+logs/
+*.log
 
 # nltk
 nltk/

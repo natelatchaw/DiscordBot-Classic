@@ -1,36 +1,17 @@
+import logging
 import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List
-from shortcutHandler import Shortcut, ShortcutHandler
-from parameterHandler import ParameterHandler
-from loggers.message_logger import MessageLogger
 
 import discord
 import discord.ext
 from router.error.configuration import ConfigurationError
 from router.error.handler import HandlerError
 from router.handler import Handler
-from router.logger import Logger
-from router.settings import Settings
 
-from loggers.channel_logger import ChannelLogger
 from providers.archiver import Archiver
-
-
-async def print_login_message(settings: Settings):
-    if client.user:
-        startup_message = f'Bot client {client.user.mention} initialized in {round((datetime.now(tz=timezone.utc) - instantiated_time).total_seconds(), 1)}s'
-        for guild in client.guilds:
-            logger: Logger = ChannelLogger(settings, guild)
-            await logger.print(startup_message)
-
-async def print_logout_message(settings: Settings):
-    if client.user:
-        shutdown_message = f'Bot client {client.user.mention} shutting down. Runtime: {round((datetime.now(tz=timezone.utc) - instantiated_time).total_seconds(), 1)}s'
-        for guild in client.guilds:
-            logger: Logger = ChannelLogger(settings, guild)
-            await logger.print(shutdown_message)
+from settings import Settings
 
 async def archive_message(message: discord.Message):
     archiver: Archiver = Archiver(message.channel)
@@ -64,19 +45,19 @@ try:
     client: discord.Client = discord.Client(intents=intents)
 
     # initialize settings data from configuration file
-    settings: Settings = Settings('config')
-    # get the components path reference defined in configuration
-    components_path: Path = Path(settings.components)
-    # initialize handler
-    handler = ParameterHandler()
-    # load modules folder
-    handler.load(components_path)
+    settings: Settings = Settings()
 
     @client.event
     async def on_ready():
         # startup tasks
-        print(f'{client.user.name} loaded in {settings.mode} mode.')
+        print(f'{client.user.name} loaded in {settings.token.active} mode.')
         await print_login_message(settings)
+
+        # initialize handler
+        handler = ParameterHandler()
+        # if a components path is defined
+        if settings.ux.components: handler.load(settings.ux.components)
+
         print(f'Beginning archive task.')
         await archive_channels(client)
         print(f'Archive task completed.')
@@ -91,31 +72,20 @@ try:
             archiver: Archiver = Archiver(message.channel)
         except:
             archiver = None
-        try:
-            channel_logger: ChannelLogger = ChannelLogger(settings, message.guild)
-        except:
-            channel_logger = None
-        try:
-            message_logger: MessageLogger = MessageLogger(settings, message.guild)
-        except:
-            message_logger = None
 
         # initialize optionals to pass to handler
         optionals: dict = {
             '_message': message,
             '_settings': settings,
             '_archiver': archiver,
-            '_logger': channel_logger,
-            '_components': handler._registrations,
+            '_packages': handler._packages,
             '_client': client,
-            '_features': handler.features,
-            '_instantiated_time': instantiated_time,
+            '_timestamp': instantiated_time,
         }
         
         try:
             # handle message
             await handler.process(settings.prefix, message.content, optionals=optionals)
-            await message_logger.print(message)
         except ConfigurationError as configurationError:
             print(configurationError)
         except TypeError as typeError:
@@ -139,7 +109,7 @@ try:
                 print(exception)
                 
     # try to start the bot client
-    loop.run_until_complete(client.start(settings.token))
+    loop.run_until_complete(client.start(settings.token.current))
 # if TypeError or ValueError occurs
 except ConfigurationError as error:
     #raise
@@ -150,6 +120,8 @@ except KeyboardInterrupt as keyboardInterrupt:
 # if the client fails to login
 except discord.errors.LoginFailure as loginFailure:
     print(f'Login failure occurred: {loginFailure}')
+except ValueError as error:
+    logging.error(error)
 # if an unexpected error occurs
 except:
     # throw it

@@ -1,12 +1,12 @@
-from typing import List
+from typing import Any, List, Tuple
 import discord
 import sqlite3
 import os
 import re
 import random
 from datetime import datetime, timezone
-from router.static.urlregex import urlRegex
-from router.static.snowflake import Snowflake
+from .snowflake import Snowflake
+from .urlregex import urlRegex
 
 class Archiver():
 
@@ -89,14 +89,14 @@ class Archiver():
             pass
 
     async def select(self, columns: List[str] = ['MESSAGE_ID']):
-        select_statement = f'''
+        select_statement: str = f'''
             SELECT {', '.join(columns)} FROM CHANNEL{self._channel.id}
         '''
         self._cursor.execute(select_statement)
         # fetch the all rows
         return self._cursor.fetchall()
 
-    async def fetch(self, limit=None):
+    async def fetch(self, limit: int | None = None) -> None:
         # get message id of oldest message in database
         oldest_message_id = await self.get_oldest() or None
         try:
@@ -121,56 +121,49 @@ class Archiver():
         except discord.errors.Forbidden:
             raise Exception(f'Missing access for channel #{self._channel.name}')
 
-    async def get_oldest(self):
-        # assemble select statement
-        select_statement = f'''
+    async def get_oldest(self) -> int | None:
+        query: str = f'''
             SELECT MESSAGE_ID FROM CHANNEL{self._channel.id}
             ORDER BY MESSAGE_ID ASC
             LIMIT 1
         '''
-        # execute the insert statement with parameter injection
-        self._cursor.execute(select_statement)
-        # fetch the first (and only) row
-        oldest_entry = self._cursor.fetchone()
+        parameters: Tuple[Any] = ()
+        self._cursor.execute(query, parameters)
+        entries: List[Any] = self._cursor.fetchall()
         try:
-            # parse the retrieved message id to an integer
-            oldest_message_id = int(oldest_entry[0])
+            return int(entries[0])
         except:
-            oldest_message_id = None
-        # return the oldest message id
-        return oldest_message_id
+            return None
 
     async def get_newest(self):
-        select_statement = f'''
+        query: str = f'''
             SELECT MESSAGE_ID FROM CHANNEL{self._channel.id}
             ORDER BY MESSAGE_ID DESC
             LIMIT 1
         '''
-        self._cursor.execute(select_statement)
-        # fetch the first (and only) row
-        newest_entry = self._cursor.fetchone()
+        parameters: Tuple[Any] = ()
+        self._cursor.execute(query, parameters)
+        entries: List[Any] = self._cursor.fetchall()
         try:
-            # parse the retrieved message id to an integer
-            newest_message_id = int(newest_entry[0])
+            return int(entries[0])
         except:
-            newest_message_id = None
-        # return the newest message id
-        return newest_message_id
+            return None
 
-    async def get_messages(self, *, member: discord.User = None):
-        # assemble select statement
-        select_statement = f'''
-            SELECT * FROM CHANNEL{self._channel.id}
-        '''
-        # if member is not none
+    async def get_messages(self, *, member: discord.User = None) -> List:
         if member is not None:
-            # add where clause
-            select_statement = ' '.join([select_statement, f'WHERE AUTHOR_ID = {member.id}'])
-
-        # execute the select statement
-        self._cursor.execute(select_statement)
-        # get the length of the returned query
-        return self._cursor.fetchall()
+            query: str = f'''
+                SELECT * FROM CHANNEL{self._channel.id}
+                WHERE AUTHOR_ID = :member_id'
+            '''
+            parameters: Tuple[Any] = (member.id)
+        else:
+            query: str = f'''
+                SELECT * FROM CHANNEL{self._channel.id}
+            '''
+            parameters: Tuple[Any] = ()
+        self._cursor.execute(query, parameters)
+        entries: List[Any] = self._cursor.fetchall()
+        return entries
 
     async def get_count(self, *, member: discord.User = None):
         # assemble select statement
