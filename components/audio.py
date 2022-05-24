@@ -3,6 +3,7 @@ import logging
 from asyncio import Event, Queue
 from asyncio.events import AbstractEventLoop
 from logging import Logger
+from shlex import join, shlex
 from typing import Any, Dict, List, Optional, Union
 
 import discord
@@ -200,48 +201,40 @@ class Audio():
                 # get the entries property, if it exists
                 entries: Optional[List[Any]] = data.get('entries')
                 # if the data contains a list of entries, use the list
-                # otherwise create list from data (a single entry)
-                results: List[Dict[str, Any]] = entries if entries else list(data)
+                # otherwise create list from data (single entry)
+                results: List[Dict[str, Any]] = entries if entries else [data]
             except youtube_dl.utils.DownloadError as downloadError:
                 await context.message.reply(downloadError)
                 raise
-
-            # get multiplier if speed was provided
-            multiplier: Optional[float] = float(speed) if speed else None
-            # assert the multiplier is within supported bounds
-            multiplier: Optional[float] = multiplier if multiplier and multiplier > 0.5 and multiplier < 2.0 else None
-            # create options string if multiplier is available
-            options: Optional[str] = f'-filter:a \"atempo={multiplier}\"' if multiplier else None
 
             result: Optional[Dict[str, Any]] = results[0]
             if not result:
                 await context.message.reply(f'No results found for {query}')
                 return
 
-            reference: Optional[str] = result.get('url')
-            if not reference:
-                await context.message.reply(f'Result was missing url.')
-                return
+            
+            # get multiplier if speed was provided
+            multiplier: Optional[float] = float(speed) if speed else None
+            # assert the multiplier is within supported bounds
+            multiplier: Optional[float] = multiplier if multiplier and multiplier > 0.5 and multiplier < 2.0 else None
+            # create options string if multiplier is available
+            options: Optional[str] = join([r'-filter:a', rf'"atempo={multiplier}"']) if multiplier else None
 
-            source: AudioSource = discord.FFmpegOpusAudio(reference, options=options)
-
-            request: AudioRequest = AudioRequest(
-                title=result.get('title'),
-                url=result.get('url'),
-                webpage_url=result.get('webpage_url'),
-                channel=result.get('channel'),
-                bitrate=result.get('abr'),
-                thumbnail=result.get('thumbnail'),
-                source=source,
-            )
+            # create track instance from result data
+            metadata: Metadata = Metadata(result)
+            # create source from metadata url and options
+            source: AudioSource = discord.FFmpegOpusAudio(metadata.url, options=options)
+            # create request from source and metadata
+            request: AudioRequest = AudioRequest(source, metadata)
+            # add the request to the queue
             await self._playback_queue.put(request)
 
             embed: discord.Embed = discord.Embed()
             embed.set_author(name=context.message.author.display_name, icon_url=context.message.author.avatar_url)
-            embed.title = request.title
-            embed.url = request.webpage_url
-            embed.description = request.channel
-            embed.set_image(url=request.thumbnail)
+            embed.title = request.metadata.title
+            embed.url = request.metadata.webpage_url
+            embed.description = request.metadata.channel
+            embed.set_image(url=request.metadata.thumbnail)
             embed.timestamp = context.message.created_at
             embed.color = discord.Colour.from_rgb(r=255, g=0, b=0)
             await context.message.channel.send(embed=embed)
@@ -308,32 +301,49 @@ class Audio():
         await self.play(context, url=url, search=search, channel=channel, speed=speed)
 
 
-class AudioRequest():
-    """
-    A request object for the bot to play.
-    """
+class Metadata():
 
-    def __init__(self, title: str, url: str, webpage_url: str, channel: str, bitrate: float, thumbnail: str, source: AudioSource):
-        self._title: str = title
-        self._url: str = url
-        self._channel: str = channel
-        self._bitrate: float = bitrate
-        self._thumbnail: str = thumbnail
-        self._source: AudioSource = source
-        self._webpage_url: str = webpage_url
+    def __init__(self, dict: Dict[str, Any]):
+        try:
+            self._url: str = dict['url']
+            if not isinstance(self._url, str):
+                raise TypeError(f'Key \'url\' is not of type {type(str)}')
+
+            self._title: str = dict['title']
+            if not isinstance(self._title, str):
+                raise TypeError(f'Key \'title\' is not of type {type(str)}')
+
+            self._webpage_url: str = dict['webpage_url']
+            if not isinstance(self._webpage_url, str):
+                raise TypeError(f'Key \'webpage_url\' is not of type {type(str)}')
+
+            self._channel: str = dict['channel']
+            if not isinstance(self._channel, str):
+                raise TypeError(f'Key \'channel\' is not of type {type(str)}')
+
+            self._bitrate: float = dict['abr']
+            if not isinstance(self._bitrate, float):
+                raise TypeError(f'Key \'abr\' is not of type {type(str)}')
+
+            self._thumbnail: str = dict['thumbnail']
+            if not isinstance(self._thumbnail, str):
+                raise TypeError(f'Key \'thumbnail\' is not of type {type(str)}')
+
+        except Exception as error:
+            log.error(error)
 
     @property
     def url(self) -> str:
         return self._url
 
     @property
-    def webpage_url(self) -> str:
-        return self._webpage_url
-
-    @property
     def title(self) -> str:
         return self._title
     
+    @property
+    def webpage_url(self) -> str:
+        return self._webpage_url
+
     @property
     def channel(self) -> str:
         return self._channel
@@ -341,10 +351,24 @@ class AudioRequest():
     @property
     def bitrate(self) -> float:
         return self._bitrate
-    
+
     @property
     def thumbnail(self) -> str:
         return self._thumbnail
+
+
+class AudioRequest():
+    """
+    A request object for the bot to play.
+    """
+
+    def __init__(self, source: AudioSource, metadata: Metadata):
+        self._metadata: Metadata = metadata
+        self._source: AudioSource = source
+    
+    @property
+    def metadata(self) -> Metadata:
+        return self._metadata
 
     @property
     def source(self) -> AudioSource:
