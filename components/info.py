@@ -60,9 +60,10 @@ class Info:
             embed.timestamp = datetime.now(tz=timezone.utc)
         
         elif component:
+            selected_component: Optional[Component] = None
             for p in context.packages.values():
                 try:
-                    selected_component: Optional[Component] = p[component]
+                    selected_component = p[component]
                 except KeyError:
                     continue
             if not selected_component:
