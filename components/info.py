@@ -1,8 +1,8 @@
 from datetime import datetime, time, timedelta, timezone
 import os
-from typing import List
+from typing import Dict, List, Optional
 import discord
-from router.packaging import Package
+from router.packaging import Package, Component
 
 from context import Context
 
@@ -36,7 +36,7 @@ class Info:
 
         await context.message.channel.send(embed=embed)
 
-    async def help(self, context: Context, *, package: str = None):
+    async def help(self, context: Context, *, package: str = None, component: str = None):
         """
         Provides usage data for commands.
 
@@ -50,13 +50,29 @@ class Info:
             try:
                 selected_package: Package = context.packages[package]
             except KeyError:
-                await context.message.channel.send(f'Could not find a component named **{package}**')
+                await context.message.channel.send(f'Could not find a package named **{package}**')
                 return
 
             embed.title = selected_package._reference.name
             embed.description = selected_package.doc
-            for component in selected_package.components.values():
+            for component in selected_package.values():
                 embed.add_field(name=component.name, value=component.doc, inline=False)
+            embed.timestamp = datetime.now(tz=timezone.utc)
+        
+        elif component:
+            for p in context.packages.values():
+                try:
+                    selected_component: Optional[Component] = p[component]
+                except KeyError:
+                    continue
+            if not selected_component:
+                await context.message.channel.send(f'Could not find a component named **{component}**')
+                return
+            
+            embed.title = selected_component.name
+            embed.description = selected_component.doc
+            for command in selected_component.values():
+                embed.add_field(name=command.name, value=command.doc, inline=False)
             embed.timestamp = datetime.now(tz=timezone.utc)
 
         else:
