@@ -1,13 +1,121 @@
-from typing import Any, List, Optional, Tuple
+from logging import Logger
+import logging
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 import discord
-from discord import TextChannel, DMChannel
+from discord import TextChannel, DMChannel, Guild, Message
 import sqlite3
+from sqlite3 import Connection, Cursor
 import os
 import re
 import random
 from datetime import datetime, timezone
 from .snowflake import Snowflake
 from .urlregex import urlRegex
+
+log: Logger = logging.getLogger(__name__)
+
+class Manipulator():
+    def __init__(self, channel: TextChannel, directory: Path) -> None:
+        if not isinstance(channel, TextChannel):
+            raise TypeError(f'Archiving is not supported for {type(channel).__name__} types.')
+
+        # resolve the directory path
+        self._directory: Path = directory.resolve()
+        # get the path of the channel database
+        self._database: Path = self._directory.joinpath(str(channel.id) + '.db').resolve()
+        # create the channel database if it doesn't exist
+        if not self._database.exists(): self._database.touch(exist_ok=True)
+        
+        # connect to the database
+        self._connection: Connection = sqlite3.connect(self._database)
+        # create the database cursor
+        self._cursor: Cursor = self._connection.cursor()
+        # assemble query
+        query: str = '''
+        CREATE TABLE IF NOT EXISTS MESSAGES (
+            ID INTEGER UNIQUE PRIMARY KEY,
+            AuthorID INTEGER,
+            Content TEXT,
+            Timestamp TIMESTAMP
+        )
+        '''
+        # assemble query parameters
+        parameters: Tuple = ()
+        # execute the query with parameters
+        self._cursor.execute(query, parameters)
+
+    def write(self, message: Message) -> None:
+        print('WRITING')
+        # assemble query
+        query: str = '''
+        INSERT INTO MESSAGES VALUES (
+            ?,
+            ?,
+            ?,
+            ?
+        )
+        '''
+        # assemble query parameters
+        parameters: Tuple = (
+            message.id,
+            message.author.id,
+            message.content,
+            message.created_at
+        
+        )
+        # try to insert and save message values
+        try:
+            # execute the insert statement with parameter injection
+            self._cursor.execute(query, parameters)
+            # save changes
+            self._connection.commit()
+        # catch integrity errors (UNIQUE constraints, etc.)
+        except Exception as error:
+            log.error(error)
+            raise
+
+
+class Archiver2:
+    def __init__(self, directory: Path) -> None:
+        # resolve the directory path
+        self._reference: Path = directory.resolve()
+        # create the directory path
+        if not self._reference.exists(): self._reference.mkdir(parents=True, exist_ok=True)
+        # initialize manipulator dictionary
+        self._manipulators: Dict[int, Manipulator] = dict()
+
+        # store detected types for connect call
+        types: int = sqlite3.PARSE_COLNAMES | sqlite3.PARSE_DECLTYPES
+
+
+    def __get_database__(self, channel: discord.abc.Messageable) -> Path:
+        if not isinstance(channel, TextChannel):
+            raise TypeError(f'Archiving is not supported for {type(channel).__name__} types.')
+
+        # get the guild of the channel
+        guild: Optional[Guild] = channel.guild
+        # get the path of the guild's folder
+        folder: Path = self._reference.joinpath(str(guild.id)).resolve()
+        # create the guild folder if it doesn't exist
+        if not folder.exists(): folder.mkdir(parents=True, exist_ok=True)
+        #
+        self._manipulators[channel.id] = Manipulator(channel, folder)
+
+    def archive(self, message: Message) -> None:
+        if not isinstance(message, Message):
+            raise TypeError(f'Archiving is not supported for {type(message).__name__} types.')
+
+        # get the TextChannel that the message was sent in
+        channel: TextChannel = message.channel
+        #
+        if not self._manipulators.get(channel.id):
+            #
+            self.__get_database__(channel)
+        # get the manipulator for the channel
+        manipulator: Manipulator = self._manipulators[channel.id]
+        # write the message
+        manipulator.write(message)
 
 
 class Archiver:

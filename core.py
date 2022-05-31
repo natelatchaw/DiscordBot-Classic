@@ -15,7 +15,7 @@ from router import HandlerError
 from router.handler import Command, Component, Handler, Package
 
 from commandHandler import CommandHandler
-from providers.archiver import Archiver
+from providers.archiver import Archiver, Archiver2
 from settings import Settings
 
 log: Logger = logging.getLogger(__name__)
@@ -46,12 +46,19 @@ class Core(Client):
     async def on_ready(self):
         try:
             path: Path = self._settings.ux.components
-            if path:
-                self._handler.load(path)
+            if path: self._handler.load(path)
         except ValueError as error:
             log.warning(f"Failed to load: {error}")
         except HandlerError as error:
             log.warning(error)
+
+        try:
+            archive_path: Path = Path('./archive')
+            self._archiver: Archiver2 = Archiver2(archive_path)
+        except Exception as error:
+            log.warning(error)
+
+
         log.info("Ready!")
 
     async def on_message(self, message: Message):
@@ -60,6 +67,8 @@ class Core(Client):
             return
         # log the message
         self.log_message(message)
+        # archive the message
+        self.archive_message(message)
         # if the message author is the bot
         if message.author.id == self.user.id:
             return
@@ -78,6 +87,9 @@ class Core(Client):
             log.error(error)
         except ValueError as error:
             log.error(error)
+
+    def archive_message(self, message: Message):
+        self._archiver.archive(message)
 
     def log_message(self, message: Message):
         # get the message author
