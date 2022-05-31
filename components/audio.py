@@ -3,6 +3,7 @@ import logging
 from asyncio import Event, Queue, Task, TimeoutError
 from asyncio.events import AbstractEventLoop
 from logging import Logger
+import queue
 from shlex import join
 from typing import Any, Dict, List, NoReturn, Optional, Union
 from urllib.request import Request
@@ -83,9 +84,6 @@ class Audio():
                 _: True = await self._playback_event.wait()
 
                 log.debug(f'Finishing track \'{request.metadata.title}\'')
-
-                # stop playing audio
-                #self._client.stop()
 
             except TimeoutError as error:
                 log.error(error)
