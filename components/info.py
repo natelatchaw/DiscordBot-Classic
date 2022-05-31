@@ -41,7 +41,8 @@ class Info:
         Provides usage data for commands.
 
         Parameters:
-            -component: specify a component to retrieve help data for
+            - package: specify a package to retrieve help data for
+            - component: specify a component to retrieve help data for
         """
 
         embed = discord.Embed()
