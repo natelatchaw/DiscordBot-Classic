@@ -2,10 +2,11 @@ from logging import Logger
 import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from weakref import KeyedRef
 import discord
 from discord import TextChannel, DMChannel, Guild, Message
 import sqlite3
-from sqlite3 import Connection, Cursor
+from sqlite3 import Connection, Cursor, IntegrityError
 import os
 import re
 import random
@@ -29,6 +30,8 @@ class Manipulator():
         
         # connect to the database
         self._connection: Connection = sqlite3.connect(self._database)
+        # set the connection's row factory
+        self._connection.row_factory = sqlite3.Row
         # create the database cursor
         self._cursor: Cursor = self._connection.cursor()
         # assemble query
@@ -45,8 +48,56 @@ class Manipulator():
         # execute the query with parameters
         self._cursor.execute(query, parameters)
 
+    @property
+    def oldest(self) -> Optional[datetime]:
+        # assemble query
+        query: str = '''
+        SELECT * FROM MESSAGES
+        ORDER BY ID ASC
+        '''
+        # assemble query parameters
+        parameters: Tuple = ()
+        #
+        try:
+            # execute the select statement with parameter injection
+            self._cursor.execute(query, parameters)
+            # fetch the first row
+            message: sqlite3.Row = self._cursor.fetchone()
+            # if no message was found, return None
+            if message is None: return None
+            # get the message ID
+            id: int = message['ID']
+            # return the timestamp
+            return discord.utils.snowflake_time(id)
+        except:
+            raise
+
+    @property
+    def newest(self) -> Optional[datetime]:
+        # assemble query
+        query: str = '''
+        SELECT * FROM MESSAGES
+        ORDER BY ID DESC
+        '''
+        # assemble query parameters
+        parameters: Tuple = ()
+        #
+        try:
+            # execute the select statement with parameter injection
+            self._cursor.execute(query, parameters)
+            # fetch the first row
+            message: sqlite3.Row = self._cursor.fetchone()
+            # if no message was found, return None
+            if message is None: return None
+            # get the message ID
+            id: int = message['ID']
+            # return the timestamp
+            return discord.utils.snowflake_time(id)
+        except:
+            raise
+
+
     def write(self, message: Message) -> None:
-        print('WRITING')
         # assemble query
         query: str = '''
         INSERT INTO MESSAGES VALUES (
@@ -71,8 +122,7 @@ class Manipulator():
             # save changes
             self._connection.commit()
         # catch integrity errors (UNIQUE constraints, etc.)
-        except Exception as error:
-            log.error(error)
+        except IntegrityError:
             raise
 
 
@@ -88,19 +138,32 @@ class Archiver2:
         # store detected types for connect call
         types: int = sqlite3.PARSE_COLNAMES | sqlite3.PARSE_DECLTYPES
 
-
-    def __get_database__(self, channel: discord.abc.Messageable) -> Path:
+    def __create__(self, channel: discord.abc.Messageable):
         if not isinstance(channel, TextChannel):
             raise TypeError(f'Archiving is not supported for {type(channel).__name__} types.')
-
+        
         # get the guild of the channel
         guild: Optional[Guild] = channel.guild
         # get the path of the guild's folder
         folder: Path = self._reference.joinpath(str(guild.id)).resolve()
-        # create the guild folder if it doesn't exist
-        if not folder.exists(): folder.mkdir(parents=True, exist_ok=True)
-        #
+        # if the guild folder doesn't exist
+        if not folder.exists():
+            # create the guild folder
+            folder.mkdir(parents=True, exist_ok=True)
+        # create and add manipulator
         self._manipulators[channel.id] = Manipulator(channel, folder)
+
+
+    def __get_database__(self, channel: discord.abc.Messageable) -> Manipulator:
+        if not isinstance(channel, TextChannel):
+            raise TypeError(f'Archiving is not supported for {type(channel).__name__} types.')
+        #
+        if not self._manipulators.get(channel.id):
+            #
+            self.__create__(channel)
+        #
+        return self._manipulators.get(channel.id)
+
 
     def archive(self, message: Message) -> None:
         if not isinstance(message, Message):
@@ -108,14 +171,39 @@ class Archiver2:
 
         # get the TextChannel that the message was sent in
         channel: TextChannel = message.channel
-        #
+        # if no existing manipulator exists for the channel
         if not self._manipulators.get(channel.id):
-            #
+            # create 
             self.__get_database__(channel)
         # get the manipulator for the channel
         manipulator: Manipulator = self._manipulators[channel.id]
         # write the message
         manipulator.write(message)
+
+    async def fetch(self, channel: TextChannel):
+        # get the channel's manipulator
+        manipulator: Manipulator = self.__get_database__(channel)
+        # annotate message type
+        message: Message
+        
+        # for each message in the channel history before the oldest recorded message 
+        async for message in channel.history(limit=None, before=manipulator.oldest, oldest_first=False):
+            logging.debug('Writing message %s to %s', message.id, manipulator._database.name)
+            try:
+                # write the message
+                manipulator.write(message)
+            except IntegrityError:
+                pass
+
+        # for each message in the channel history after the newest recorded message 
+        async for message in channel.history(limit=None, after=manipulator.newest, oldest_first=True):
+            logging.debug('Writing message %s to %s', message.id, manipulator._database.name)
+            try:
+                # write the message
+                manipulator.write(message)
+            except IntegrityError:
+                pass
+
 
 
 class Archiver:

@@ -1,18 +1,18 @@
 
 
+import asyncio
 from datetime import datetime, timezone
 import logging
 from logging import FileHandler, Formatter, Logger
 from pathlib import Path
 import re
-from typing import Dict, Optional
+from typing import Any, Coroutine, Dict, Optional
 from context import Context
 
 import discord
 from discord import Client, Intents, Message
 from pip import List
 from router import HandlerError
-from router.handler import Command, Component, Handler, Package
 
 from commandHandler import CommandHandler
 from providers.archiver import Archiver, Archiver2
@@ -55,9 +55,11 @@ class Core(Client):
         try:
             archive_path: Path = Path('./archive')
             self._archiver: Archiver2 = Archiver2(archive_path)
-        except Exception as error:
-            log.warning(error)
-
+            channels: List[discord.TextChannel] = [channel for channel in self.get_all_channels() if isinstance(channel, discord.TextChannel)]
+            tasks: List[Coroutine[Any, Any, None]] = [self._archiver.fetch(channel) for channel in channels]
+            for task in tasks: await task
+        except Exception:
+            raise
 
         log.info("Ready!")
 
