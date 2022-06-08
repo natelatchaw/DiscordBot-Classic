@@ -188,7 +188,7 @@ class Archiver2:
         
         # for each message in the channel history before the oldest recorded message 
         async for message in channel.history(limit=None, before=manipulator.oldest, oldest_first=False):
-            logging.debug('Writing message %s to %s', message.id, manipulator._database.name)
+            log.debug('Writing message %s to %s', message.id, manipulator._database.name)
             try:
                 # write the message
                 manipulator.write(message)
@@ -197,7 +197,7 @@ class Archiver2:
 
         # for each message in the channel history after the newest recorded message 
         async for message in channel.history(limit=None, after=manipulator.newest, oldest_first=True):
-            logging.debug('Writing message %s to %s', message.id, manipulator._database.name)
+            log.debug('Writing message %s to %s', message.id, manipulator._database.name)
             try:
                 # write the message
                 manipulator.write(message)

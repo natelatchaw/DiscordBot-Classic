@@ -1,10 +1,14 @@
 import logging
 import sys
 from logging import FileHandler, Formatter, Logger, StreamHandler
+from typing import Optional
+from xmlrpc.client import Boolean
 
 import discord
 import router
 
+import core
+import providers.archiver
 from core import Core
 
 root: Logger = logging.getLogger()
@@ -31,10 +35,12 @@ logging.addLevelName(logging.FATAL, "FTL")
 
 logging.getLogger().setLevel(logging.DEBUG)
 logging.getLogger(discord.__name__).setLevel(logging.WARNING)
-logging.getLogger(router.Handler.__name__).setLevel(logging.INFO)
-logging.getLogger(router.packaging.Package.__name__).setLevel(logging.INFO)
-logging.getLogger(router.packaging.Component.__name__).setLevel(logging.INFO)
-logging.getLogger(router.packaging.Command.__name__).setLevel(logging.INFO)
+logging.getLogger(core.__name__).setLevel(logging.DEBUG)
+logging.getLogger(providers.archiver.__name__).setLevel(logging.DEBUG)
+logging.getLogger(router.__name__).setLevel(logging.INFO)
+logging.getLogger(router.packaging.__name__).setLevel(logging.INFO)
+logging.getLogger(router.packaging.__name__).setLevel(logging.INFO)
+logging.getLogger(router.packaging.__name__).setLevel(logging.INFO)
 
 log: Logger = logging.getLogger(__name__)
 

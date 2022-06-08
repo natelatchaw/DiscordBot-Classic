@@ -1,13 +1,9 @@
-
-
-import asyncio
-from datetime import datetime, timezone
 import logging
+import re
+from datetime import datetime, timezone
 from logging import FileHandler, Formatter, Logger
 from pathlib import Path
-import re
 from typing import Any, Coroutine, Dict, Optional
-from context import Context
 
 import discord
 from discord import Client, Intents, Message
@@ -15,6 +11,7 @@ from pip import List
 from router import HandlerError
 
 from commandHandler import CommandHandler
+from context import Context
 from providers.archiver import Archiver, Archiver2
 from settings import Settings
 
@@ -39,7 +36,6 @@ class Core(Client):
         self._timestamp: datetime = datetime.now(tz=timezone.utc)
         self._settings: Settings = Settings()
         self._handler: CommandHandler = CommandHandler()
-        self._loggers: Dict[int, Logger] = dict()
         self._archiver: Archiver = None  # Archiver(None)
         super().__init__(intents=Intents.all())
 
