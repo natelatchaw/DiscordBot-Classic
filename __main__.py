@@ -15,7 +15,7 @@ formatter: Formatter = Formatter('[%(asctime)s] [%(levelname)s] [%(name)s] %(mes
 
 stdoutHandler: StreamHandler = StreamHandler(sys.stdout)
 stdoutHandler.setFormatter(formatter)
-stdoutHandler.setLevel(logging.DEBUG)
+stdoutHandler.setLevel(logging.INFO)
 root.addHandler(stdoutHandler)
 
 fileHandler: FileHandler = FileHandler("./.log", encoding="utf-8")
