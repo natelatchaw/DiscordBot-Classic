@@ -1,3 +1,4 @@
+from datetime import datetime
 import discord
 from context import Context
 
@@ -72,3 +73,16 @@ class Utility():
         embed.timestamp = _message.created_at
         await dm_channel.send(embed=embed)
         await _message.delete()
+
+    async def age(self, context: Context):
+        """
+        Display's the creation date of the message author's account.
+        """
+        user: discord.User = context.message.author
+        timestamp: datetime = discord.utils.snowflake_time(user.id)
+        channel: discord.abc.Messageable = context.message.channel
+        embed = discord.Embed()
+        embed.title = f'Discord user since {timestamp.year}'
+        embed.set_author(name=user.name, icon_url=user.avatar_url)
+        embed.timestamp = timestamp
+        await channel.send(embed=embed)
