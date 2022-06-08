@@ -1,3 +1,8 @@
+
+
+import asyncio
+from datetime import datetime, timezone
+from http import client
 import logging
 import re
 from datetime import datetime, timezone
@@ -11,8 +16,8 @@ from pip import List
 from router import HandlerError
 
 from commandHandler import CommandHandler
-from context import Context
-from providers.archiver import Archiver, Archiver2
+from providers.archiver import Archiver, Archive
+from providers.guildArchive import GuildArchive
 from settings import Settings
 
 log: Logger = logging.getLogger(__name__)
@@ -36,7 +41,8 @@ class Core(Client):
         self._timestamp: datetime = datetime.now(tz=timezone.utc)
         self._settings: Settings = Settings()
         self._handler: CommandHandler = CommandHandler()
-        self._archiver: Archiver = None  # Archiver(None)
+        self._loggers: Dict[int, Logger] = dict()
+        self._archive: Archiver = None  # Archiver(None)
         super().__init__(intents=Intents.all())
 
     async def on_ready(self):
@@ -50,10 +56,12 @@ class Core(Client):
 
         try:
             archive_path: Path = Path('./archive')
-            self._archiver: Archiver2 = Archiver2(archive_path)
-            channels: List[discord.TextChannel] = [channel for channel in self.get_all_channels() if isinstance(channel, discord.TextChannel)]
-            tasks: List[Coroutine[Any, Any, None]] = [self._archiver.fetch(channel) for channel in channels]
-            for task in tasks: await task
+            self._archive: Archive = Archive(self.guilds, archive_path)
+            await self._archive.fetch()
+
+            #channels: List[discord.TextChannel] = [channel for channel in self.get_all_channels() if isinstance(channel, discord.TextChannel)]
+            #tasks: List[Coroutine[Any, Any, None]] = [self._archive.fetch(channel) for channel in channels]
+            #for task in tasks: await task
         except Exception:
             raise
 
@@ -75,7 +83,7 @@ class Core(Client):
                 self,
                 message,
                 self._settings,
-                self._archiver,
+                self._archive,
                 self._timestamp,
                 self._handler._packages,
             )
@@ -87,7 +95,7 @@ class Core(Client):
             log.error(error)
 
     def archive_message(self, message: Message):
-        self._archiver.archive(message)
+        self._archive.write(message)
 
     def log_message(self, message: Message):
         # get the message author
