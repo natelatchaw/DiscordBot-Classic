@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import Dict
 from discord import Client, Message
-from providers.archiver import Archiver
+from providers.archiver import Archive, Archiver
 from router.packaging import Package
+from providers.guildArchive import GuildArchive
 
 from settings import Settings
 
@@ -21,7 +22,7 @@ class Context:
         return self._settings
 
     @property
-    def archiver(self) -> Archiver:
+    def archive(self) -> Archive:
         return self._archiver
 
     @property

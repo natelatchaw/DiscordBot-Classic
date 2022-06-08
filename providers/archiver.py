@@ -1,8 +1,10 @@
+import abc
+import collections
 from logging import Logger
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
-from weakref import KeyedRef
+import struct
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 import discord
 from discord import TextChannel, DMChannel, Guild, Message
 import sqlite3
@@ -11,129 +13,40 @@ import os
 import re
 import random
 from datetime import datetime, timezone
+
+from providers.channelArchive import ChannelArchive
+from providers.guildArchive import GuildArchive
 from .snowflake import Snowflake
 from .urlregex import urlRegex
 
 log: Logger = logging.getLogger(__name__)
 
-class Manipulator():
-    def __init__(self, channel: TextChannel, directory: Path) -> None:
-        if not isinstance(channel, TextChannel):
-            raise TypeError(f'Archiving is not supported for {type(channel).__name__} types.')
-
+class Archive():
+    
+    def __init__(self, guilds: List[Guild], directory: Path) -> None:
         # resolve the directory path
         self._directory: Path = directory.resolve()
-        # get the path of the channel database
-        self._database: Path = self._directory.joinpath(str(channel.id) + '.db').resolve()
-        # create the channel database if it doesn't exist
-        if not self._database.exists(): self._database.touch(exist_ok=True)
-        
-        # connect to the database
-        self._connection: Connection = sqlite3.connect(self._database)
-        # set the connection's row factory
-        self._connection.row_factory = sqlite3.Row
-        # create the database cursor
-        self._cursor: Cursor = self._connection.cursor()
-        # assemble query
-        query: str = '''
-        CREATE TABLE IF NOT EXISTS MESSAGES (
-            ID INTEGER UNIQUE PRIMARY KEY,
-            AuthorID INTEGER,
-            Content TEXT,
-            Timestamp TIMESTAMP
-        )
-        '''
-        # assemble query parameters
-        parameters: Tuple = ()
-        # execute the query with parameters
-        self._cursor.execute(query, parameters)
+        # create the archives dictionary
+        self._archives: Dict[str, GuildArchive] = {guild.id: GuildArchive(guild, self._directory) for guild in guilds}
 
-    @property
-    def oldest(self) -> Optional[datetime]:
-        # assemble query
-        query: str = '''
-        SELECT * FROM MESSAGES
-        ORDER BY ID ASC
-        '''
-        # assemble query parameters
-        parameters: Tuple = ()
-        #
-        try:
-            # execute the select statement with parameter injection
-            self._cursor.execute(query, parameters)
-            # fetch the first row
-            message: sqlite3.Row = self._cursor.fetchone()
-            # if no message was found, return None
-            if message is None: return None
-            # get the message ID
-            id: int = message['ID']
-            # return the timestamp
-            return discord.utils.snowflake_time(id)
-        except:
-            raise
+    def write(self, message: Message):
+        self._archives[message.guild.id].write(message)
 
-    @property
-    def newest(self) -> Optional[datetime]:
-        # assemble query
-        query: str = '''
-        SELECT * FROM MESSAGES
-        ORDER BY ID DESC
-        '''
-        # assemble query parameters
-        parameters: Tuple = ()
-        #
-        try:
-            # execute the select statement with parameter injection
-            self._cursor.execute(query, parameters)
-            # fetch the first row
-            message: sqlite3.Row = self._cursor.fetchone()
-            # if no message was found, return None
-            if message is None: return None
-            # get the message ID
-            id: int = message['ID']
-            # return the timestamp
-            return discord.utils.snowflake_time(id)
-        except:
-            raise
+    async def fetch(self) -> None:
+        for archive in self._archives.values():
+            try:
+                await archive.fetch()
+            except Exception as error:
+                log.error(error)
 
-
-    def write(self, message: Message) -> None:
-        # assemble query
-        query: str = '''
-        INSERT INTO MESSAGES VALUES (
-            ?,
-            ?,
-            ?,
-            ?
-        )
-        '''
-        # assemble query parameters
-        parameters: Tuple = (
-            message.id,
-            message.author.id,
-            message.content,
-            message.created_at
-        
-        )
-        # try to insert and save message values
-        try:
-            # execute the insert statement with parameter injection
-            self._cursor.execute(query, parameters)
-            # save changes
-            self._connection.commit()
-        # catch integrity errors (UNIQUE constraints, etc.)
-        except IntegrityError:
-            raise
-
-
-class Archiver2:
+class Archive2():
     def __init__(self, directory: Path) -> None:
         # resolve the directory path
         self._reference: Path = directory.resolve()
         # create the directory path
         if not self._reference.exists(): self._reference.mkdir(parents=True, exist_ok=True)
         # initialize manipulator dictionary
-        self._manipulators: Dict[int, Manipulator] = dict()
+        self._archives: Dict[int, ChannelArchive] = dict()
 
         # store detected types for connect call
         types: int = sqlite3.PARSE_COLNAMES | sqlite3.PARSE_DECLTYPES
@@ -151,18 +64,18 @@ class Archiver2:
             # create the guild folder
             folder.mkdir(parents=True, exist_ok=True)
         # create and add manipulator
-        self._manipulators[channel.id] = Manipulator(channel, folder)
+        self._archives[channel.id] = ChannelArchive(channel, folder)
 
 
-    def __get_database__(self, channel: discord.abc.Messageable) -> Manipulator:
+    def __get_database__(self, channel: discord.abc.Messageable) -> ChannelArchive:
         if not isinstance(channel, TextChannel):
             raise TypeError(f'Archiving is not supported for {type(channel).__name__} types.')
         #
-        if not self._manipulators.get(channel.id):
+        if not self._archives.get(channel.id):
             #
             self.__create__(channel)
         #
-        return self._manipulators.get(channel.id)
+        return self._archives.get(channel.id)
 
 
     def archive(self, message: Message) -> None:
@@ -172,17 +85,17 @@ class Archiver2:
         # get the TextChannel that the message was sent in
         channel: TextChannel = message.channel
         # if no existing manipulator exists for the channel
-        if not self._manipulators.get(channel.id):
+        if not self._archives.get(channel.id):
             # create 
             self.__get_database__(channel)
         # get the manipulator for the channel
-        manipulator: Manipulator = self._manipulators[channel.id]
+        archive: ChannelArchive = self._archives[channel.id]
         # write the message
-        manipulator.write(message)
+        archive.write(message)
 
     async def fetch(self, channel: TextChannel):
         # get the channel's manipulator
-        manipulator: Manipulator = self.__get_database__(channel)
+        manipulator: ChannelArchive = self.__get_database__(channel)
         # annotate message type
         message: Message
         
@@ -203,8 +116,6 @@ class Archiver2:
                 manipulator.write(message)
             except IntegrityError:
                 pass
-
-
 
 class Archiver:
     def __init__(self, channel: Optional[TextChannel]):
