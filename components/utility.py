@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import discord
 from context import Context
 from providers.channelArchive import ChannelArchive
@@ -93,7 +93,15 @@ class Utility():
         """
         """
 
+        user: discord.User = context.message.author
+        channel: discord.TextChannel = context.message.channel
         guildArchive: GuildArchive = context.archive._archives[context.message.guild.id]
         channelArchive: ChannelArchive = guildArchive._archives[context.message.channel.id]
-        length = len(channelArchive)
-        await context.message.reply(length)
+        count: int = len(channelArchive)
+
+        embed = discord.Embed()
+        embed.title = f'#{channel.name} Message Count'
+        embed.set_author(name=user.name, icon_url=user.avatar_url)
+        embed.description = f'{count} Messages'
+        embed.timestamp = datetime.now(tz=timezone.utc)
+        await channel.send(embed=embed)
