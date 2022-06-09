@@ -1,17 +1,12 @@
 import io
-from typing import Any, Callable, List
+from typing import Any, Callable
+
 import PIL
-from PIL import Image
 import torch
 from context import Context
-from discord import Attachment, File, TextChannel
+from discord import File, TextChannel
+from PIL import Image
 
-__requires__: List[str] = [
-    "discord"
-    "Pillow",
-    "torch",
-    "torchvision"
-]
 
 class GAN():
 

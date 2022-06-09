@@ -89,7 +89,7 @@ class Utility():
         embed.timestamp = timestamp
         await channel.send(embed=embed)
 
-    async def count(self, context: Context):
+    async def count_(self, context: Context):
         """
         """
 

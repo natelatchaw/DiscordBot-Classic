@@ -1,22 +1,14 @@
-import abc
 import collections
 import logging
-import os
-import random
-import re
 import sqlite3
-import struct
-from datetime import datetime, timezone
+from datetime import datetime
 from logging import Logger
 from pathlib import Path
 from sqlite3 import Connection, Cursor, IntegrityError
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Iterator, List, Optional, Tuple
 
 import discord
-from discord import DMChannel, Guild, Message, TextChannel
-
-from .snowflake import Snowflake
-from .urlregex import urlRegex
+from discord import Message, TextChannel
 
 
 log: Logger = logging.getLogger(__name__)

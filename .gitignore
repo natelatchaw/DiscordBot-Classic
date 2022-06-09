@@ -9,6 +9,9 @@ data/
 *.db
 *.db-journal
 
+# archives
+archive/
+
 # logs
 logs/
 *.log
