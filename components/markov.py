@@ -49,6 +49,7 @@ class Generation():
 
     def __init__(self, *args, **kwargs):
         self._root: Path = Path('./archive/models')
+        nltk.download('averaged_perceptron_tagger')
 
     def __save__(self, guild: Guild, channel: TextChannel, user: User, data: str) -> None:
         directory: Path = self._root
