@@ -21,7 +21,25 @@ from .urlregex import urlRegex
 
 log: Logger = logging.getLogger(__name__)
 
-class Archive():
+class Archive(collections.abc.MutableMapping):
+
+    def __setitem__(self, key: str, value: ChannelArchive) -> None:
+        self._archives.__setitem__(key, value)
+    
+    def __getitem__(self, key: str) -> ChannelArchive:
+        return self._archives.__getitem__(key)
+
+    def __delitem__(self, key: str) -> None:
+        self._archives.__delitem__(key)
+
+    def __iter__(self) -> Iterator[Dict[str, ChannelArchive]]:
+        return self._archives.__iter__()
+
+    def __len__(self) -> int:
+        return self._archives.__len__()
+
+    def __str__(self) -> str:
+        return self._archives.__str__()
     
     def __init__(self, guilds: List[Guild], directory: Path) -> None:
         # resolve the directory path
@@ -38,6 +56,7 @@ class Archive():
                 await archive.fetch()
             except Exception as error:
                 log.error(error)
+                raise
 
 class Archive2():
     def __init__(self, directory: Path) -> None:
