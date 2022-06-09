@@ -5,6 +5,8 @@ from PIL import Image
 import torch
 from context import Context
 from discord import Attachment, File, TextChannel
+import torchvision.transforms as transforms
+from torchvision.transforms import Compose
 
 __requires__: List[str] = [
     "discord"
@@ -27,7 +29,7 @@ class GAN():
         for attachment in context.message.attachments:
 
             input_binary: io.BytesIO = io.BytesIO()
-            file: File = await attachment.save(input_binary, seek_begin=True)
+            file: File = await attachment.save(input_binary)
             input_binary.seek(0)
             source: Image = Image.open(input_binary).convert("RGB")
 
