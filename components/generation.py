@@ -1,18 +1,18 @@
-from datetime import datetime
-import time
-from operator import length_hint
 import random
+import time
+from datetime import datetime
 from typing import Dict, List, Set, Tuple
+
 import discord
-from discord import message
+import nltk
+import numpy
+from nltk.corpus import stopwords, wordnet
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.tag import pos_tag
-import numpy
 from providers.archiver import Archiver
-import nltk
-from nltk.corpus import stopwords, wordnet
 
-class Generation():
+
+class Generation_():
 
     def __init__(self):
         print(f'Attempting to update NLTK data...')

@@ -13,6 +13,7 @@ from typing import Any, Coroutine, Dict, Optional
 import discord
 from discord import Client, Intents, Message
 from pip import List
+from context import Context
 from router import HandlerError
 
 from commandHandler import CommandHandler
@@ -104,7 +105,7 @@ class Core(Client):
         logger: Optional[Logger] = self.get_logger(message.channel)
         # if a logger was found, log the message
         if logger:
-            logger.info("%s#%s -> %s", user.name, user.discriminator, message.content)
+            logger.info("%s#%s -> %s", user.name, user.discriminator, message.clean_content)
 
     def get_logger(self, channel: discord.TextChannel) -> Optional[Logger]:
         logger: Optional[Logger] = None
