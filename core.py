@@ -12,7 +12,7 @@ from pip import List
 from context import Context
 from router import HandlerError
 
-from commandHandler import CommandHandler
+from commandHandler import CommandHandler, MissingPrefixError
 from providers.archiver import Archiver, Archive
 from settings import Settings
 
@@ -68,6 +68,8 @@ class Core(Client):
             )
             # process the message
             await self._handler.handle(self._settings.ux.prefix, message, context=context)
+        except MissingPrefixError:
+            pass
         except HandlerError as error:
             log.error(error)
         except ValueError as error:
