@@ -22,7 +22,22 @@ from .urlregex import urlRegex
 log: Logger = logging.getLogger(__name__)
 
 class Archive(collections.abc.MutableMapping):
+    
+    def __init__(self) -> None:
+        # initialize the archive directory
+        self._archives: Dict[str, GuildArchive] = dict()
 
+    def load(self, directory: Path, guilds: List[Guild]) -> None:
+        # resolve the provided directory path
+        directory: Path = directory.resolve()
+        log.debug('Resolved provided directory to %s', directory)
+
+        # if the provided directory doesn't exist
+        if not directory.exists(): directory.mkdir(parents=True, exist_ok=True)
+
+        # create the archives dictionary
+        self._archives = {guild.id: GuildArchive(guild, directory) for guild in guilds}
+        
     def __setitem__(self, key: str, value: ChannelArchive) -> None:
         self._archives.__setitem__(key, value)
     
@@ -40,12 +55,7 @@ class Archive(collections.abc.MutableMapping):
 
     def __str__(self) -> str:
         return self._archives.__str__()
-    
-    def __init__(self, guilds: List[Guild], directory: Path) -> None:
-        # resolve the directory path
-        self._directory: Path = directory.resolve()
-        # create the archives dictionary
-        self._archives: Dict[str, GuildArchive] = {guild.id: GuildArchive(guild, self._directory) for guild in guilds}
+
 
     def write(self, message: Message):
         self._archives[message.guild.id].write(message)

@@ -14,6 +14,7 @@ log: Logger = logging.getLogger(__name__)
 
 
 class CommandHandler(Handler):
+
     async def handle(self, prefix: str, message: Message, *, context: Context):
         # create args list from context instance
         args: List[Any] = [context]
@@ -22,8 +23,7 @@ class CommandHandler(Handler):
             rf"^{prefix}[\w]+", message.content
         )
         # if the prefixed command could not be found at the beginning of the message
-        if not command_match:
-            raise MissingPrefixError()
+        if not command_match: raise MissingPrefixError()
         # remove prefix from message content
         command_message: str = re.sub(rf"^{prefix}", "", message.content)
 

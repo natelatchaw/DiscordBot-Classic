@@ -10,8 +10,8 @@ from urllib.request import Request
 import discord
 import youtube_dl
 from context import Context
-from discord import (ClientException, ClientUser, StageChannel, VoiceChannel,
-                     VoiceClient, VoiceState)
+from discord import (ClientException, StageChannel, VoiceChannel, VoiceClient,
+                     VoiceState)
 from discord.player import AudioSource
 
 log: Logger = logging.getLogger(__name__)

@@ -1,7 +1,6 @@
-import abc
 import collections
-from logging import Logger
 import logging
+from logging import Logger
 from pathlib import Path
 from typing import Dict, Iterator
 
@@ -12,7 +11,20 @@ from providers.archiver import ChannelArchive
 
 log: Logger = logging.getLogger(__name__)
 
+
 class GuildArchive(collections.abc.MutableMapping):
+
+    def __init__(self, guild: Guild, directory: Path) -> None:
+        # set guild
+        self._guild: Guild = guild
+        # resolve the directory path
+        self._directory: Path = directory.resolve()
+        # get the path of the guild folder
+        self._folder: Path = self._directory.joinpath(str(self._guild.id))
+        # create the guild folder if it doesn't exist
+        if not self._folder.exists(): self._folder.mkdir(parents=True, exist_ok=True)
+        # create the archives dictionary
+        self._archives: Dict[str, ChannelArchive] = {channel.id: ChannelArchive(channel, self._folder) for channel in self._guild.text_channels}
 
     def __setitem__(self, key: str, value: ChannelArchive) -> None:
         self._archives.__setitem__(key, value)
@@ -31,18 +43,6 @@ class GuildArchive(collections.abc.MutableMapping):
 
     def __str__(self) -> str:
         return self._archives.__str__()
-
-    def __init__(self, guild: Guild, directory: Path) -> None:
-        # set guild
-        self._guild: Guild = guild
-        # resolve the directory path
-        self._directory: Path = directory.resolve()
-        # get the path of the guild folder
-        self._folder: Path = self._directory.joinpath(str(self._guild.id))
-        # create the guild folder if it doesn't exist
-        if not self._folder.exists(): self._folder.mkdir(parents=True, exist_ok=True)
-        # create the archives dictionary
-        self._archives: Dict[str, ChannelArchive] = {channel.id: ChannelArchive(channel, self._folder) for channel in self._guild.text_channels}
 
     def write(self, message: Message) -> None:
         self._archives[message.channel.id].write(message)

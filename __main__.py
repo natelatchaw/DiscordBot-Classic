@@ -46,7 +46,7 @@ log: Logger = logging.getLogger(__name__)
 
 try:
     client = Core()
-    client.loop.run_until_complete(client.start(client.token))
+    client.loop.run_until_complete(client.start(client._settings.token.current))
 except KeyboardInterrupt:
     client.loop.run_until_complete(client.close())
 except Exception as error:

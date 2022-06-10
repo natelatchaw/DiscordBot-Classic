@@ -1,14 +1,10 @@
-
-
-import asyncio
 from datetime import datetime, timezone
-from http import client
 import logging
 import re
 from datetime import datetime, timezone
 from logging import FileHandler, Formatter, Logger
 from pathlib import Path
-from typing import Any, Coroutine, Dict, Optional
+from typing import Dict, Optional
 
 import discord
 from discord import Client, Intents, Message
@@ -18,38 +14,24 @@ from router import HandlerError
 
 from commandHandler import CommandHandler
 from providers.archiver import Archiver, Archive
-from providers.guildArchive import GuildArchive
 from settings import Settings
 
 log: Logger = logging.getLogger(__name__)
 
 class Core(Client):
-    @property
-    def token(self) -> str:
-        try:
-            return self._settings.token.current
-        except ValueError:
-            raise
-
-    @property
-    def prefix(self) -> str:
-        try:
-            return self._settings.ux.prefix
-        except ValueError:
-            raise
 
     def __init__(self) -> None:
         self._timestamp: datetime = datetime.now(tz=timezone.utc)
         self._settings: Settings = Settings()
         self._handler: CommandHandler = CommandHandler()
+        self._archive: Archive = Archive()
         self._loggers: Dict[int, Logger] = dict()
-        self._archive: Archiver = None  # Archiver(None)
         super().__init__(intents=Intents.all())
 
     async def on_ready(self):
         try:
-            path: Path = self._settings.ux.components
-            if path: self._handler.load(path)
+            component_path: Path = self._settings.ux.components
+            self._handler.load(component_path)
         except ValueError as error:
             log.warning(f"Failed to load: {error}")
         except HandlerError as error:
@@ -57,12 +39,8 @@ class Core(Client):
 
         try:
             archive_path: Path = Path('./archive')
-            self._archive: Archive = Archive(self.guilds, archive_path)
+            self._archive.load(archive_path, self.guilds)
             await self._archive.fetch()
-
-            #channels: List[discord.TextChannel] = [channel for channel in self.get_all_channels() if isinstance(channel, discord.TextChannel)]
-            #tasks: List[Coroutine[Any, Any, None]] = [self._archive.fetch(channel) for channel in channels]
-            #for task in tasks: await task
         except Exception:
             raise
 
@@ -89,7 +67,7 @@ class Core(Client):
                 self._handler._packages,
             )
             # process the message
-            await self._handler.handle(self.prefix, message, context=context)
+            await self._handler.handle(self._settings.ux.prefix, message, context=context)
         except HandlerError as error:
             log.error(error)
         except ValueError as error:

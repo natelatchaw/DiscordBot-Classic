@@ -2,24 +2,18 @@
 Contains components for long term data management and storage.
 """
 
-from dis import disco
 import io
 import logging
-import os
-from random import Random, random
-import re
 import sqlite3
-import time
 from datetime import datetime, timezone
 from logging import Logger
+from random import Random
 from typing import Dict, List, Optional, Tuple
 
 import discord
 from context import Context
 from discord import Guild, Message, TextChannel, User
-from providers.archiver import Archiver
 from providers.channelArchive import ChannelArchive
-from settings import Settings
 
 log: Logger = logging.getLogger(__name__)
 
@@ -81,8 +75,8 @@ class Archive():
         import matplotlib.pyplot as pyplot
         import numpy
         import PIL
-        from matplotlib.pyplot import Axes
         from matplotlib.figure import Figure
+        from matplotlib.pyplot import Axes
         from PIL import Image
 
 

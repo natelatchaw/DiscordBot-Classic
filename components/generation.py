@@ -1,164 +1,161 @@
-import random
-import time
-from datetime import datetime
-from typing import Dict, List, Set, Tuple
+import re
+import sqlite3
+from datetime import datetime, timezone
+from pathlib import Path
+from time import process_time
+from typing import List, Optional, Pattern, Tuple
 
 import discord
+import markovify
 import nltk
-import numpy
-from nltk.corpus import stopwords, wordnet
-from nltk.stem.wordnet import WordNetLemmatizer
-from nltk.tag import pos_tag
-from providers.archiver import Archiver
+from context import Context
+from discord import Guild, Message, TextChannel, User
+from providers.channelArchive import ChannelArchive
+
+nltk.download('averaged_perceptron_tagger')
+
+class POSifiedText(markovify.NewlineText):
+    def word_split(self, sentence):
+        words = re.split(self.word_split_pattern, sentence)
+        words = [ "::".join(tag) for tag in nltk.pos_tag(words) ]
+        return words
+
+    def word_join(self, words):
+        sentence = " ".join(word.split("::")[0] for word in words)
+        return sentence
+
+class Generation():
+    """
+    """
+
+    def __init__(self, *args, **kwargs):
+        self._root: Path = Path('./archive/models')
+        self.__compile__()
+
+    def __compile__(self) -> None:
+        """
+        Compile regex patterns used in message analyzation.
+        """
+        
+        # compile the url pattern
+        self._url_pattern: Pattern = re.compile(r"(?i)\b((?:https?:(?:/{1,3}|[a-z0-9%])|[a-z0-9.\-]+[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)/)(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’])|(?:(?<!@)[a-z0-9]+(?:[.\-][a-z0-9]+)*[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)\b/?(?!@)))")
+        # compile the mention pattern
+        self._mention_pattern: Pattern = re.compile(r"<(?::\w+:|@!*&*|#)[0-9]+>")
 
 
-class Generation_():
+    def __clean__(self, text: str) -> str:
+        """
+        Cleans the text of any irregular characters
+        """
 
-    def __init__(self):
-        print(f'Attempting to update NLTK data...')
-        if not nltk.download(info_or_id='all', download_dir='./nltk', quiet=True):
-            raise Exception('Failed to update NLTK data.')
-        else:
-            print(f'Updated NLTK data.')
-        nltk.data.path.append('./nltk')
+        text = text.lower()
+        text = text.encode('ascii', 'ignore').decode()
+        text = re.sub(self._url_pattern, '', text)
+        text = re.sub(self._mention_pattern, '', text)
+        text = re.sub(r'\n', ' ', text)
+        text = re.sub(r'\t', '', text)
+        text = re.sub(r'\[', '', text)
+        text = re.sub(r'\]', '', text)
+        text = text.strip()
+        return text
 
-    async def emulate(self, *, _message: discord.Message, _archiver: Archiver, user: str = None):
-        await _archiver.fetch()
+
+    def __save__(self, guild: Guild, channel: TextChannel, user: User, data: str) -> None:
+        """
+        Saves the text data to the directory dictated by the guild, channel and user parameters
+        """
+
+        directory: Path = self._root
+        directory = directory.joinpath(str(guild.id))
+        directory = directory.joinpath(str(channel.id))
+        directory = directory.resolve()
+        if not directory.exists(): directory.mkdir(parents=True, exist_ok=True)
+        file: Path = directory.joinpath(str(user.id))
+        if not file.exists(): file.touch(exist_ok=True)
+        file.write_text(data)
+
+    def __load__(self, guild: Guild, channel: TextChannel, user: User) -> str:
+        """
+        Loads the text data from the directory dictated by the guild, channel and user parameters
+        """
+
+        directory: Path = self._root
+        directory = directory.joinpath(str(guild.id))
+        directory = directory.joinpath(str(channel.id))
+        directory = directory.resolve()
+        if not directory.exists(): directory.mkdir(parents=True, exist_ok=True)
+        file: Path = directory.joinpath(str(user.id))
+        if not file.exists(): raise ValueError(f'No model found for {user.name}! Run \'compile\' to compile one.')
+        return file.read_text()
+
+
+    async def compile(self, context: Context) -> None:
+
+        message: Message = await context.message.reply('Compiling...')
+
+        guild: Guild = context.message.guild
+        channel: TextChannel = context.message.channel
+        user: User = context.message.author
 
         try:
-            user_id: int = int(user)
-            members: List[discord.Member] = _message.guild.members
-            author: discord.Member = [member for member in members if member.id == user_id].pop(0)
-        except NameError:
-            await _message.channel.send(f'{user} is not a valid user.')
-            return
+            mention: Optional[User] = context.message.mentions.pop(0)
+            if mention: user = mention
+        except IndexError:
+            pass
 
-        messages: List[Tuple[int, str]] = await _archiver.select(['AUTHOR_ID', 'CONTENT'])
-        user_messages: List[str] = [content for author_id, content in messages if user_id == author_id]
-        array: List[List[str]] = [content.split() for content in user_messages]
+        archive: ChannelArchive = context.archive[guild.id][channel.id]
 
-        dictionary: Dict[str, Dict[str, int]] = dict()
+        start: float = process_time()
 
-        for row in array:
-            # for each word in the message
-            for word in range(len(row) - 1):
-                # get the current word
-                current_word: str = row[word]
-                # get the next word
-                next_word: str = row[word + 1]
-                # if there isn't already an entry for the current word
-                if current_word not in dictionary.keys():
-                    # create an empty list to put the next word in
-                    dictionary[current_word] = dict()
-                # if there isn't already an entry for the next word in the current word dict
-                if next_word not in dictionary[current_word].keys():
-                    # set the next word count to 1
-                    dictionary[current_word][next_word] = 1
-                # if there is already an entry for the next word in the current word dict
-                elif next_word in dictionary[current_word].keys():
-                    # increment the next word count by 1
-                    dictionary[current_word][next_word] += 1
+        sql: str = '''
+        SELECT * FROM Messages
+        WHERE AuthorID = ?
+        '''
+        parameters: Tuple = (user.id, )
 
-        length: int = random.randint(8, 20)
-        generated: List[str] = [numpy.random.choice(list(dictionary.keys()))]
+        archive._cursor.execute(sql, parameters)
+        rows: List[sqlite3.Row] = archive._cursor.fetchall()
+        texts: List[str] = [row['content'] for row in rows]
 
-        while next_word is not None and len(generated) < 15:
-            previous_word: str = generated[-1]
-            potential_words: Dict[str, int] = dictionary.get(previous_word)
-            try:
-                filtered_words = [word for word, word_count in potential_words.items() if (dictionary.get(word))]
-                selected_word: str = numpy.random.choice(filtered_words)
-                next_word: str = selected_word
-                generated.append(next_word)
-            except ValueError:
-                next_word = None
+        texts = [self.__clean__(text) for text in texts]
+        texts = [text for text in texts if text]
+        text: str = '\n'.join(texts)
+
+        model: POSifiedText = POSifiedText(text)
+        json: str = model.to_json()
+        self.__save__(guild, channel, user, json)
+
+        finish: float = process_time()
+
+        delta: float = finish - start
+
+        await message.edit(content=f'Compiled model for {user.mention} in {"%.2f" % delta}s')
+
+
+    async def generate(self, context: Context, *, tries: int = 10) -> None:
+
+        guild: Guild = context.message.guild
+        channel: TextChannel = context.message.channel
+        user: User = context.message.author
+
+        try:
+            mention: Optional[User] = context.message.mentions.pop(0)
+            if mention: user = mention
+        except IndexError:
+            pass
+
+        json: str = self.__load__(guild, channel, user)
+        model: POSifiedText = POSifiedText.from_json(json)
+        sentence: Optional[str] = model.make_sentence(tries=int(tries))
+        if not sentence: 
+            raise ValueError('Could not generate content; not enough source data. Try increasing value of the `-tries` flag (default 10).')
         
-        message_content: str = ' '.join(generated)
-        message_content = message_content[:1999]
-
         embed: discord.Embed = discord.Embed()
-        embed.set_author(name=author.display_name, icon_url=author.avatar_url)
-        embed.description = message_content
-        embed.timestamp = datetime.now()
+        embed.set_author(name=user.name, icon_url=user.avatar_url)
+        embed.description = sentence
+        embed.timestamp = datetime.now(tz=timezone.utc)
 
-        await _message.channel.send(embed=embed)
-
-    async def emulate_beta(self, *, _message: discord.Message, _archiver: Archiver, user: str = None):
-        await _archiver.fetch()
-
-        lemmatizer: WordNetLemmatizer = WordNetLemmatizer()
-        part_of_speech_tags: Dict[str, wordnet.ADJ|wordnet.NOUN|wordnet.VERB|wordnet.ADV] = { 'J': wordnet.ADJ, 'N': wordnet.NOUN, 'V': wordnet.VERB, 'R': wordnet.ADV }
-        stop_words: Set[str] = set(stopwords.words('english'))
-
-        try:
-            user_id: int = int(user)
-            members: List[discord.Member] = _message.guild.members
-            author: discord.Member = [member for member in members if member.id == user_id].pop(0)
-        except NameError:
-            await _message.channel.send(f'{user} is not a valid user.')
-            return
-
-        messages: List[Tuple[int, str]] = await _archiver.select(['AUTHOR_ID', 'CONTENT'])
-        user_messages: List[str] = [content for author_id, content in messages if user_id == author_id]
+        response: Message = await channel.send(embed=embed)
         
-        tokenized_messages: List[str] = [nltk.word_tokenize(user_message, language='english') for user_message in user_messages]
-        tagged_tokenized_messages: List[List[Tuple(str, str)]] = [pos_tag(tokenized_message) for tokenized_message in tokenized_messages]
-        lemmatized_messages: List[List[str]] = [[lemmatizer.lemmatize(word=word.lower(), pos=part_of_speech_tags.get(part_of_speech[0], wordnet.NOUN)) for word, part_of_speech in tagged_tokenized_message if word.isalpha()] for tagged_tokenized_message in tagged_tokenized_messages]
-        lemmatized_messages: List[List[str]] = [[lemmatized_token for lemmatized_token in lemmatized_message if lemmatized_token not in stop_words] for lemmatized_message in lemmatized_messages]
 
-        dictionary: Dict[str, Dict[str, int]] = dict()
 
-        for row in lemmatized_messages:
-            # for each word in the message
-            for word in range(len(row) - 1):
-                # get the current word
-                current_word: str = row[word]
-                # get the next word
-                next_word: str = row[word + 1]
-                # if there isn't already an entry for the current word
-                if current_word not in dictionary.keys():
-                    # create an empty list to put the next word in
-                    dictionary[current_word] = dict()
-                # if there isn't already an entry for the next word in the current word dict
-                if next_word not in dictionary[current_word].keys():
-                    # set the next word count to 1
-                    dictionary[current_word][next_word] = 1
-                # if there is already an entry for the next word in the current word dict
-                elif next_word in dictionary[current_word].keys():
-                    # increment the next word count by 1
-                    dictionary[current_word][next_word] += 1
-
-        length: int = random.randint(8, 20)
-        generated: List[str] = [numpy.random.choice(list(dictionary.keys()))]
-
-        while next_word is not None and len(generated) < 15:
-            previous_word: str = generated[-1]
-            potential_words: Dict[str, int] = dictionary.get(previous_word)
-            try:
-                filtered_words = [word for word, word_count in potential_words.items() if (dictionary.get(word))]
-                selected_word: str = numpy.random.choice(filtered_words)
-                next_word: str = selected_word
-                generated.append(next_word)
-            except ValueError:
-                next_word = None
-        
-        message_content: str = ' '.join(generated)
-        message_content = message_content[:1999]
-
-        embed: discord.Embed = discord.Embed()
-        embed.set_author(name=author.display_name, icon_url=author.avatar_url)
-        embed.description = message_content
-        embed.timestamp = datetime.now()
-
-        await _message.channel.send(embed=embed)
-
-    async def corpus(self, *, _message: discord.Message):
-        try:
-            sentences: List[List[str]] = [' '.join(sentence) for sentence in nltk.corpus.gutenberg.sents('shakespeare-caesar.txt')]
-            # sentences: List[str] = nltk.sent_tokenize(nltk.corpus.gutenberg.words('shakespeare-caesar.txt'))
-            for sentence in sentences:
-                time.sleep(1)
-                print(sentence)
-                await _message.channel.send(sentence)
-        except TypeError as exception:
-            raise

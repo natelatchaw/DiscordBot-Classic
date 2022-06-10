@@ -1,10 +1,10 @@
-from logging import Logger
-import logging
-from typing import Any
-import discord
 import asyncio
+import logging
+from logging import Logger
+
+import discord
 from context import Context
-from settings import Settings
+
 
 class Delete():
     """
