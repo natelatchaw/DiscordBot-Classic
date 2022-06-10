@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 import discord
+from discord import TextChannel
 from context import Context
 from providers.channelArchive import ChannelArchive
 from providers.guildArchive import GuildArchive
@@ -14,6 +15,12 @@ class Utility():
     
     def __init__(self, *args, **kwargs):
         pass
+
+    async def get_invite_link(self, context: Context) -> None:
+        client_id: int = context.client.user.id
+        link: str = rf'https://discord.com/api/oauth2/authorize?client_id={client_id}&permissions=0&scope=bot%20applications.commands'
+        channel: TextChannel = context.message.channel
+        await channel.send(link)
 
     async def enable_verbose(self, context: Context):
         """
