@@ -14,6 +14,7 @@ from router import HandlerError
 
 from commandHandler import CommandHandler, MissingPrefixError
 from providers.archiver import Archiver, Archive
+from rateLimiter import RateLimiter
 from settings import Settings
 
 log: Logger = logging.getLogger(__name__)
@@ -23,6 +24,7 @@ class Core(Client):
     def __init__(self) -> None:
         self._timestamp: datetime = datetime.now(tz=timezone.utc)
         self._settings: Settings = Settings()
+        self._limiter: RateLimiter = RateLimiter(self._settings)
         self._handler: CommandHandler = CommandHandler()
         self._archive: Archive = Archive()
         self._loggers: Dict[int, Logger] = dict()
@@ -32,6 +34,7 @@ class Core(Client):
         try:
             component_path: Path = self._settings.ux.components
             self._handler.load(component_path)
+            self._handler.addLimiter(self._limiter)
         except ValueError as error:
             log.warning(f"Failed to load: {error}")
         except HandlerError as error:
