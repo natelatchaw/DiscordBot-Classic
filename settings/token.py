@@ -1,7 +1,10 @@
-from multiprocessing.sharedctypes import Value
-from typing import Mapping, MutableMapping, Optional
+from logging import Logger
+import logging
+from typing import MutableMapping, Optional
 from router.configuration import Section
 
+
+log: Logger = logging.getLogger(__name__)
 
 class TokenSettings(Section):
     @property
