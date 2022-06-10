@@ -1,0 +1,9 @@
+# audio.py
+youtube-dl
+
+# gan.py
+torchvision
+
+# generation.py
+nltk
+markovify
