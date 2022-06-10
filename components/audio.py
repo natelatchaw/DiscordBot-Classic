@@ -3,7 +3,6 @@ import logging
 from asyncio import Event, Queue, Task, TimeoutError
 from asyncio.events import AbstractEventLoop
 from logging import Logger
-import queue
 from shlex import join
 from typing import Any, Dict, List, NoReturn, Optional, Union
 from urllib.request import Request
@@ -11,7 +10,8 @@ from urllib.request import Request
 import discord
 import youtube_dl
 from context import Context
-from discord import StageChannel, VoiceChannel, VoiceClient, VoiceState, ClientException
+from discord import (ClientException, ClientUser, StageChannel, VoiceChannel,
+                     VoiceClient, VoiceState)
 from discord.player import AudioSource
 
 log: Logger = logging.getLogger(__name__)
@@ -43,7 +43,6 @@ class Audio():
         # log error if available
         if error:
             log.error(error)
-
 
     async def __start__(self):
         """
