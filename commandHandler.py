@@ -1,9 +1,8 @@
 import logging
 import re
+import traceback
 from logging import Logger
 from re import Match
-from tkinter.messagebox import NO
-import traceback
 from typing import Any, List, Optional
 
 from discord import Message
