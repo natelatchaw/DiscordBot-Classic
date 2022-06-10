@@ -153,9 +153,6 @@ class Archive():
         Retreives a random message attachment from the local message database.
         """
 
-        import requests
-
-
         guild: Guild = context.message.guild
         channel: TextChannel = context.message.channel
         user: User = context.message.author
@@ -168,18 +165,17 @@ class Archive():
         parameters: Tuple = ()
         archive._cursor.execute(sql, parameters)
         rows: List[sqlite3.Row] = archive._cursor.fetchall()
-        index: int = Random.randint(0, len(rows) - 1)
+        index: int = Random().randint(0, len(rows) - 1)
         row: sqlite3.Row = rows[index]
         messageID: int = row['MessageID']
 
         message: Message = await channel.fetch_message(messageID)
         attachment: discord.Attachment = message.attachments.pop(0)
-        file: discord.File = await attachment.to_file()
 
         embed = discord.Embed()
         embed.set_author(name=message.author.name, url=message.jump_url, icon_url=message.author.avatar_url)
         embed.title = message.jump_url
         embed.timestamp = message.created_at
-        embed.set_image(url=file.filename)
+        embed.set_image(url=attachment.proxy_url)
         
-        channel.send(file=file, embed=embed)
+        await channel.send(embed=embed)
