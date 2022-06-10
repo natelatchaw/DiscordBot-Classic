@@ -40,8 +40,6 @@ class CommandHandler(Handler):
             if self._limiter: self._limiter.check(message)
             # call superclass to finish processing the message
             await super().process(command_message, args=args)
-            # REMOVE WHEN DONE TESTING
-            await message.delete()
         except Exception as error:
             log.error(error)
 
