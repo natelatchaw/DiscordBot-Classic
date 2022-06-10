@@ -54,7 +54,7 @@ class UXSettings(Section):
         self[key] = prefix
 
     @property
-    def owner(self) -> Optional[int]:
+    def owner(self) -> int:
         key: str = "owner"
         value: Optional[str] = None
         try:
