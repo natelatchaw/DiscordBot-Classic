@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
+from optparse import Option
+from typing import List, Optional
 
 import discord
-from discord import TextChannel
+from discord import TextChannel, Guild, User
 from context import Context
 from providers.channelArchive import ChannelArchive
 from providers.guildArchive import GuildArchive
@@ -16,11 +18,44 @@ class Utility():
     def __init__(self, *args, **kwargs):
         pass
 
+
+    def __check_authorization__(self, context: Context) -> None:
+        authorized: List[int] = list()
+
+        bot_owner_id: Optional[int] = None
+        try: bot_owner_id = context.settings.ux.owner
+        except ValueError: pass
+        if bot_owner_id: authorized.append(bot_owner_id)
+        
+        guild: Guild = context.message.guild
+        guild_owner_id: Optional[int] = guild.owner_id if guild.owner_id else None
+        if guild_owner_id: authorized.append(guild_owner_id)
+
+        author: User = context.message.author
+        if author.id not in authorized: raise Exception('Unauthorized')
+
+
     async def get_invite_link(self, context: Context) -> None:
         client_id: int = context.client.user.id
         link: str = rf'https://discord.com/api/oauth2/authorize?client_id={client_id}&permissions=0&scope=bot%20applications.commands'
         channel: TextChannel = context.message.channel
         await channel.send(link)
+
+
+    async def set_rate_limit(self, context: Context, *, rate: Optional[str] = None, count: Optional[str] = None):
+        """
+        """
+        
+        self.__check_authorization__(context)
+
+        rate_value: Optional[float] = float(rate) if rate else None
+        if rate_value:
+            context.settings.limiting.rate = rate_value
+        
+        count_value: Optional[int] = int(count) if count else None
+        if count_value:
+            context.settings.limiting.count = count_value
+
 
     async def enable_verbose(self, context: Context):
         """
