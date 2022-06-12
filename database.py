@@ -29,6 +29,8 @@ class Database():
     def __init__(self, reference: Path) -> None:
         # create an absolute reference to the database
         self._database: Path = reference.absolute()
+        # if the parent directory does not exist, create it
+        if not self._database.parent.exists(): self._database.parent.mkdir(parents=True, exist_ok=True)
         # if the database file does not exist, create it
         if not self._database.exists(): self._database.touch(exist_ok=True)
 

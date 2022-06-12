@@ -8,7 +8,6 @@ from pathlib import Path
 from random import Random
 from shlex import join
 from sqlite3 import Connection, Row
-import sqlite3
 from typing import Any, Dict, List, NoReturn, Optional, Tuple, Type, Union
 from urllib.request import Request
 
@@ -46,7 +45,7 @@ class Audio():
 
     def __setup__(self) -> None:
         # create database instance
-        self._database: Database = Database(Path('./audio.db'))
+        self._database: Database = Database(Path('./archive/audio.db'))
 
     def __onComplete__(self, error: Optional[Exception]):
         """
@@ -344,9 +343,13 @@ class Audio():
 
 class Metadata(Storable):
 
-    def __init__(self, dict: Dict[str, Any], id: int):
+    def __init__(self, dict: Dict[str, Any], snowflake: int):
         try:
-            self._id: int = id
+            self._id: int = snowflake
+
+            self._video_id: str = dict['id']
+            if not isinstance(self._video_id, str):
+                raise TypeError(f'Key \'id\' is not of type {type(str)}')
 
             self._url: str = dict['url']
             if not isinstance(self._url, str):
@@ -374,10 +377,15 @@ class Metadata(Storable):
 
         except Exception as error:
             log.error(error)
+            raise
 
     @property
-    def id(self) -> datetime:
+    def id(self) -> int:
         return self._id
+
+    @property
+    def video_id(self) -> str:
+        return self._video_id
 
     @property
     def title(self) -> str:
@@ -413,6 +421,8 @@ class Metadata(Storable):
         c_builder: ColumnBuilder = ColumnBuilder()
         # create timestamp column
         t_builder.addColumn(c_builder.setName('ID').setType('INTEGER').isPrimary().isUnique().column())
+        # create timestamp column
+        t_builder.addColumn(c_builder.setName('VideoID').setType('TEXT').column())
         # create title column
         t_builder.addColumn(c_builder.setName('Title').setType('TEXT').column())
         # create url column
@@ -427,7 +437,7 @@ class Metadata(Storable):
 
     def __values__(self) -> Tuple[Any, ...]:
         # create a tuple with the corresponding values
-        value: Tuple[Any, ...] = (self.id, self.title, self.url, self.thumbnail)
+        value: Tuple[Any, ...] = (self.id, self.video_id, self.title, self.url, self.thumbnail)
         # return the tuple
         return value
         
