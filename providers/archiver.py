@@ -1,9 +1,7 @@
-import abc
 import collections
 from logging import Logger
 import logging
 from pathlib import Path
-import struct
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 import discord
 from discord import TextChannel, DMChannel, Guild, Message

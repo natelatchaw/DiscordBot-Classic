@@ -1,18 +1,27 @@
 import asyncio
+from datetime import datetime, timezone
 import logging
 from asyncio import Event, Queue, Task, TimeoutError
 from asyncio.events import AbstractEventLoop
 from logging import Logger
+from pathlib import Path
+from random import Random
 from shlex import join
-from typing import Any, Dict, List, NoReturn, Optional, Union
+from sqlite3 import Connection, Row
+import sqlite3
+from typing import Any, Dict, List, NoReturn, Optional, Tuple, Type, Union
 from urllib.request import Request
 
 import discord
 import youtube_dl
+from column import Column, ColumnBuilder
 from context import Context
 from discord import (ClientException, StageChannel, VoiceChannel, VoiceClient,
                      VoiceState)
 from discord.player import AudioSource
+
+from database import Database, Storable, TStorable
+from table import Table, TableBuilder
 
 log: Logger = logging.getLogger(__name__)
 
@@ -30,8 +39,14 @@ class Audio():
         self._timeout: Optional[float] = None
         self._client: Optional[VoiceClient] = None
 
+        self.__setup__()
+
         task: Task[NoReturn] = asyncio.create_task(self.__start__())
 
+
+    def __setup__(self) -> None:
+        # create database instance
+        self._database: Database = Database(Path('./audio.db'))
 
     def __onComplete__(self, error: Optional[Exception]):
         """
@@ -145,7 +160,12 @@ class Audio():
             options: Optional[str] = join([r'-filter:a', rf'atempo={multiplier}']) if multiplier else None
 
             # create track instance from result data
-            metadata: Metadata = Metadata(result)
+            metadata: Metadata = Metadata(result, context.message.id)
+            # create the metadata table if needed
+            self._database.create(metadata)
+            # insert the metadata into the table
+            self._database.insert(metadata)
+
             # create source from metadata url and options
             source: AudioSource = discord.FFmpegOpusAudio(metadata.url, options=options)
             # create request from source and metadata
@@ -322,10 +342,12 @@ class Audio():
         await self.play(context, url=url, search=search, channel=channel, speed=speed)
 
 
-class Metadata():
+class Metadata(Storable):
 
-    def __init__(self, dict: Dict[str, Any]):
+    def __init__(self, dict: Dict[str, Any], id: int):
         try:
+            self._id: int = id
+
             self._url: str = dict['url']
             if not isinstance(self._url, str):
                 raise TypeError(f'Key \'url\' is not of type {type(str)}')
@@ -354,13 +376,21 @@ class Metadata():
             log.error(error)
 
     @property
-    def url(self) -> str:
-        return self._url
+    def id(self) -> datetime:
+        return self._id
 
     @property
     def title(self) -> str:
         return self._title
     
+    @property
+    def url(self) -> str:
+        return self._url
+
+    @property
+    def thumbnail(self) -> str:
+        return self._thumbnail
+
     @property
     def webpage_url(self) -> str:
         return self._webpage_url
@@ -373,10 +403,36 @@ class Metadata():
     def bitrate(self) -> float:
         return self._bitrate
 
-    @property
-    def thumbnail(self) -> str:
-        return self._thumbnail
+    def __table__(self) -> Table:
+        # create a table builder
+        t_builder: TableBuilder = TableBuilder()
+        # set the table's name
+        t_builder.setName('Metadata')
 
+        # create a column builder
+        c_builder: ColumnBuilder = ColumnBuilder()
+        # create timestamp column
+        t_builder.addColumn(c_builder.setName('ID').setType('INTEGER').isPrimary().isUnique().column())
+        # create title column
+        t_builder.addColumn(c_builder.setName('Title').setType('TEXT').column())
+        # create url column
+        t_builder.addColumn(c_builder.setName('URL').setType('TEXT').column())
+        # create thumbnail column
+        t_builder.addColumn(c_builder.setName('Thumbnail').setType('TEXT').column())
+        
+        # build the table
+        table: Table = t_builder.table()
+        # return the table
+        return table
+
+    def __values__(self) -> Tuple[Any, ...]:
+        # create a tuple with the corresponding values
+        value: Tuple[Any, ...] = (self.id, self.title, self.url, self.thumbnail)
+        # return the tuple
+        return value
+        
+    def __from_row__(cls: Type[TStorable], row: Row) -> TStorable:
+        pass
 
 class AudioRequest():
     """

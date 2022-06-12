@@ -74,6 +74,26 @@ class MessageEntry():
 
 class ChannelArchive(collections.abc.MutableMapping):
 
+    def __init__(self, channel: TextChannel, directory: Path) -> None:
+        # set channel
+        self._channel: TextChannel = channel
+        # resolve the directory path
+        self._directory: Path = directory.resolve()
+        # get the path of the channel database
+        self._database: Path = self._directory.joinpath(str(self._channel.id) + '.db').resolve()
+        # create the channel database if it doesn't exist
+        if not self._database.exists(): self._database.touch(exist_ok=True)
+        
+        # connect to the database
+        self._connection: Connection = sqlite3.connect(self._database)
+        # set the connection's row factory
+        self._connection.row_factory = sqlite3.Row
+
+        # create the table
+        self.__create_messages__()
+        self.__create_attachments__()
+        
+
     def __setitem__(self, key: int, value: MessageEntry):
         # assemble query
         query: str = '''
@@ -222,25 +242,6 @@ class ChannelArchive(collections.abc.MutableMapping):
         # catch integrity errors (UNIQUE constraints, etc.)
         except IntegrityError:
             raise
-
-    def __init__(self, channel: TextChannel, directory: Path) -> None:
-        # set channel
-        self._channel: TextChannel = channel
-        # resolve the directory path
-        self._directory: Path = directory.resolve()
-        # get the path of the channel database
-        self._database: Path = self._directory.joinpath(str(self._channel.id) + '.db').resolve()
-        # create the channel database if it doesn't exist
-        if not self._database.exists(): self._database.touch(exist_ok=True)
-        
-        # connect to the database
-        self._connection: Connection = sqlite3.connect(self._database)
-        # set the connection's row factory
-        self._connection.row_factory = sqlite3.Row
-
-        # create the table
-        self.__create_messages__()
-        self.__create_attachments__()
 
     def __create_messages__(self) -> None:
         # create the database cursor
