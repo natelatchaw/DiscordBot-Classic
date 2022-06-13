@@ -1,2 +1,4 @@
 discord.py
+discord.py-stubs
+PyNaCl
 git+https://github.com/natelatchaw/CommandRouter

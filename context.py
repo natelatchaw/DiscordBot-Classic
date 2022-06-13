@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Dict
 from discord import Client, Message
-from providers.archiver import Archive, Archiver
+from providers.archiver import Archive
 from router.packaging import Package
 from providers.guildArchive import GuildArchive
 
@@ -23,7 +23,7 @@ class Context:
 
     @property
     def archive(self) -> Archive:
-        return self._archiver
+        return self._archive
 
     @property
     def timestamp(self) -> datetime:
@@ -38,13 +38,13 @@ class Context:
         client: Client,
         message: Message,
         settings: Settings,
-        archiver: Archiver,
+        archive: Archive,
         timestamp: datetime,
         packages: Dict[str, Package],
     ):
         self._client: Client = client
         self._settings: Settings = settings
-        self._archiver: Archiver = archiver
+        self._archive: Archive = archive
         self._message: Message = message
         self._timestamp: datetime = timestamp
         self._packages: Dict[str, Package] = packages

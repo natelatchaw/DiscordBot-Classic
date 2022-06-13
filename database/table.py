@@ -1,9 +1,10 @@
 from __future__ import annotations
-import sqlite3
 
+import sqlite3
 from typing import Any, List, Optional, Tuple
 
 from column import Column
+
 
 class Table:
 

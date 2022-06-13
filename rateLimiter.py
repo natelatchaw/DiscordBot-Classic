@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta, timezone
 import logging
 from logging import Logger
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 from collections import deque
 
-from discord import Message, User
+from discord import Message, User, Member
 
 from settings.settings import Settings
 
@@ -29,7 +29,7 @@ class RateLimiter():
             log.warning(error)
             return
 
-        author: User = message.author
+        author: Union[User, Member] = message.author
         timestamp: datetime = message.created_at
 
         if author.id not in self._history.keys():

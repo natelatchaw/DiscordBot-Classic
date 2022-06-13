@@ -34,7 +34,7 @@ class LimiterSettings(Section):
 
 
     @property
-    def count(self) -> Optional[int]:
+    def count(self) -> int:
         key: str = "count"
         value: Optional[str] = None
         try:

@@ -41,15 +41,14 @@ class MessageEntry():
 
     @classmethod
     def fromMessage(cls, message: Message) -> MessageEntry:
-        attachments: List[AttachmentEntry] = [AttachmentEntry.fromAttachment(attachment) for attachment in message.attachments]
-        return cls(message.id, message.author.id, message.content, message.created_at, attachments)
+        return cls(message.id, message.author.id, message.content, message.created_at, message.attachments)
 
-    def __init__(self, messageID: int, authorID: int, content: str, timestamp: datetime, attachments: List[AttachmentEntry] = list()) -> None:
+    def __init__(self, messageID: int, authorID: int, content: str, timestamp: datetime, attachments: List[Attachment] = list()) -> None:
         self._id: int = messageID
         self._author_id: int = authorID
         self._content: str = content
         self._timestamp: datetime = timestamp
-        self._attachments: List[AttachmentEntry] = attachments
+        self._attachments: List[AttachmentEntry] = [AttachmentEntry.fromAttachment(attachment) for attachment in attachments]
 
     @property
     def id(self) -> int:
@@ -141,8 +140,8 @@ class ChannelArchive(collections.abc.MutableMapping):
         except IntegrityError:
             raise
 
-    def __getitem__(self, key: int) -> MessageEntry:
-        entry: MessageEntry = None
+    def __getitem__(self, key: int) -> Optional[MessageEntry]:
+        entry: Optional[MessageEntry] = None
         # assemble query
         query: str = '''
         SELECT * FROM Messages
@@ -179,7 +178,7 @@ class ChannelArchive(collections.abc.MutableMapping):
             # fetch all rows
             attachments: List[sqlite3.Row] = self._cursor.fetchall()
             # add attachments to entry
-            entry.attachments = [AttachmentEntry.fromRow(attachment) for attachment in attachments]
+            entry._attachments = [AttachmentEntry.fromRow(attachment) for attachment in attachments]
         # catch integrity errors (UNIQUE constraints, etc.)
         except IntegrityError:
             raise
@@ -262,7 +261,7 @@ class ChannelArchive(collections.abc.MutableMapping):
 
     def __create_attachments__(self) -> None:
         # create the database cursor
-        self._cursor: Cursor = self._connection.cursor()
+        self._cursor = self._connection.cursor()
         # assemble query
         query: str = '''
         CREATE TABLE IF NOT EXISTS Attachments (

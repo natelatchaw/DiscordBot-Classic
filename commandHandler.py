@@ -21,7 +21,7 @@ class CommandHandler(Handler):
         super().__init__(parameter_prefix)
 
     def addLimiter(self, limiter: RateLimiter) -> None:
-        self._limiter: RateLimiter = limiter
+        self._limiter = limiter
 
     async def handle(self, prefix: str, message: Message, *, context: Context):
         # create args list from context instance

@@ -1,28 +1,10 @@
 
-from abc import abstractmethod
 from pathlib import Path
-from sqlite3 import Connection, Cursor, Row
+from sqlite3 import Connection, Row
 import sqlite3
 from typing import Any, Callable, Dict, List, Protocol, Tuple, Type, TypeVar
+from database.storable import TStorable
 from table import Table
-
-TStorable = TypeVar('TStorable', bound='Storable')
-
-
-class Storable(Protocol):
-    
-    @abstractmethod
-    def __table__(self) -> Table:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def __values__(self) -> Tuple[Any, ...]:
-        raise NotImplementedError()
-
-    @classmethod
-    @abstractmethod
-    def __from_row__(cls: Type[TStorable], row: Row) -> TStorable:
-        raise NotImplementedError()
 
 
 class Database():

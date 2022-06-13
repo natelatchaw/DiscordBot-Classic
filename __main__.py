@@ -1,8 +1,6 @@
 import logging
 import sys
 from logging import FileHandler, Formatter, Logger, StreamHandler
-from typing import Optional
-from xmlrpc.client import Boolean
 
 import discord
 import router

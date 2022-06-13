@@ -4,16 +4,16 @@ import re
 from datetime import datetime, timezone
 from logging import FileHandler, Formatter, Logger
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 import discord
-from discord import Client, Intents, Message
+from discord import Client, Intents, Message, User, Member, TextChannel, DMChannel, GroupChannel
 from pip import List
 from context import Context
 from router import HandlerError
 
 from commandHandler import CommandHandler, MissingPrefixError
-from providers.archiver import Archiver, Archive
+from providers.archiver import Archive
 from rateLimiter import RateLimiter
 from settings import Settings
 
@@ -83,14 +83,14 @@ class Core(Client):
 
     def log_message(self, message: Message):
         # get the message author
-        user: discord.User = message.author
+        user: Union[User, Member] = message.author
         # get a logger for the channel
         logger: Optional[Logger] = self.get_logger(message.channel)
         # if a logger was found, log the message
         if logger:
             logger.info("%s#%s -> %s", user.name, user.discriminator, message.clean_content)
 
-    def get_logger(self, channel: discord.TextChannel) -> Optional[Logger]:
+    def get_logger(self, channel: Union[TextChannel, DMChannel, GroupChannel]) -> Optional[Logger]:
         logger: Optional[Logger] = None
         try:
             path: Path = Path(f"./logs/{channel.id}.log").resolve()

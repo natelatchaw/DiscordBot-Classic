@@ -24,18 +24,18 @@ class GuildArchive(collections.abc.MutableMapping):
         # create the guild folder if it doesn't exist
         if not self._folder.exists(): self._folder.mkdir(parents=True, exist_ok=True)
         # create the archives dictionary
-        self._archives: Dict[str, ChannelArchive] = {channel.id: ChannelArchive(channel, self._folder) for channel in self._guild.text_channels}
+        self._archives: Dict[int, ChannelArchive] = {channel.id: ChannelArchive(channel, self._folder) for channel in self._guild.text_channels}
 
-    def __setitem__(self, key: str, value: ChannelArchive) -> None:
+    def __setitem__(self, key: int, value: ChannelArchive) -> None:
         self._archives.__setitem__(key, value)
     
-    def __getitem__(self, key: str) -> ChannelArchive:
+    def __getitem__(self, key: int) -> ChannelArchive:
         return self._archives.__getitem__(key)
 
-    def __delitem__(self, key: str) -> None:
+    def __delitem__(self, key: int) -> None:
         self._archives.__delitem__(key)
 
-    def __iter__(self) -> Iterator[Dict[str, ChannelArchive]]:
+    def __iter__(self) -> Iterator[int]:
         return self._archives.__iter__()
 
     def __len__(self) -> int:
