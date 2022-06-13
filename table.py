@@ -48,6 +48,30 @@ class Table:
 
         return f'{sql} ({delimited_columns})'
 
+    def __select__(self) -> str:
+        """
+        Get the SQL statement responsible for selecting the table
+        """
+        terms: List[str] = list()
+        # add the select command to the list of terms
+        terms.append('SELECT')
+
+        # get the statement for each column
+        column_names: List[str] = [column._name for column in self._columns]
+        # join each statement with a comma
+        delimited_column_names: str = ', '.join(column_names)
+        # add the delimited column names to the list of terms
+        terms.append(delimited_column_names)
+
+        # add the from command to the list of terms
+        terms.append('FROM')
+        # add the name to the list of terms if it exists
+        if self._name: terms.append(self._fully_qualified_name)
+        # join the terms with a space character
+        sql: str = ' '.join(terms)
+        
+        return f'{sql}'
+
     def __insert__(self) -> str:
         """
         Get the SQL statement responsible for deleting the table
@@ -65,16 +89,16 @@ class Table:
         sql: str = ' '.join(terms)
         
         # get the statement for each column
-        columns: List[str] = [column._name for column in self._columns]
+        column_names: List[str] = [column._name for column in self._columns]
         # join each statement with a comma
-        delimited_columns: str = ', '.join(columns)
+        delimited_column_names: str = ', '.join(column_names)
         
         # get a parameter placeholder for each column
         values: List[str] = ['?' for _ in self._columns]
         # join each statement with a comma
         delimited_values: str = ', '.join(values)
 
-        return  f'{sql} ({delimited_columns}) VALUES ({delimited_values})'
+        return  f'{sql} ({delimited_column_names}) VALUES ({delimited_values})'
             
     def __delete__(self, *, if_exists: bool) -> str:
         """

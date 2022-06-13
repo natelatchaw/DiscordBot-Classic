@@ -19,6 +19,7 @@ class Storable(Protocol):
     def __values__(self) -> Tuple[Any, ...]:
         raise NotImplementedError()
 
+    @classmethod
     @abstractmethod
     def __from_row__(cls: Type[TStorable], row: Row) -> TStorable:
         raise NotImplementedError()
@@ -46,6 +47,16 @@ class Database():
         self._connection.cursor().execute(table.__create__(if_not_exists=True))
         # commit the changes
         self._connection.commit()
+
+    def select(self, type: Type[TStorable]) -> List[Row]:
+        # get the table instance
+        table: Table = type.__table__()
+        # execute the table's select statement
+        self._connection.cursor().execute(table.__select__())
+        # fetch all results
+        results: List[Row] = self._connection.cursor().fetchall()
+        # return results
+        return results
 
     def insert(self, type: Type[TStorable]) -> None:
         # get the table instance

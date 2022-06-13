@@ -12,6 +12,8 @@ from typing import Any, Dict, List, NoReturn, Optional, Tuple, Type, Union
 from urllib.request import Request
 
 import discord
+from discord import Guild, TextChannel, User, Message
+from matplotlib.image import thumbnail
 import youtube_dl
 from column import Column, ColumnBuilder
 from context import Context
@@ -159,7 +161,7 @@ class Audio():
             options: Optional[str] = join([r'-filter:a', rf'atempo={multiplier}']) if multiplier else None
 
             # create track instance from result data
-            metadata: Metadata = Metadata(result, context.message.id)
+            metadata: Metadata = Metadata.from_dict(result, context.message.id, context.message.author.id)
             # create the metadata table if needed
             self._database.create(metadata)
             # insert the metadata into the table
@@ -269,7 +271,6 @@ class Audio():
             embed: discord.Embed = discord.Embed()
             embed.set_author(name=context.message.author.display_name, icon_url=context.message.author.avatar_url)
             embed.title = request.metadata.title
-            embed.url = request.metadata.webpage_url
             embed.description = request.metadata.channel
             embed.set_image(url=request.metadata.thumbnail)
             embed.timestamp = context.message.created_at
@@ -340,48 +341,41 @@ class Audio():
         """
         await self.play(context, url=url, search=search, channel=channel, speed=speed)
 
+    async def top(self, context: Context):
+        """
+        """
+
+        guild: Guild = context.message.guild
+        channel: TextChannel = context.message.channel
+        user: User = context.message.author
+
+        try:
+            mention: Optional[User] = context.message.mentions.pop(0)
+            if mention: user = mention
+        except IndexError:
+            pass
+
+        results: List[Metadata] = [Metadata.__from_row__(result) for result in self._database.select()]
+
 
 class Metadata(Storable):
 
-    def __init__(self, dict: Dict[str, Any], snowflake: int):
-        try:
-            self._id: int = snowflake
-
-            self._video_id: str = dict['id']
-            if not isinstance(self._video_id, str):
-                raise TypeError(f'Key \'id\' is not of type {type(str)}')
-
-            self._url: str = dict['url']
-            if not isinstance(self._url, str):
-                raise TypeError(f'Key \'url\' is not of type {type(str)}')
-
-            self._title: str = dict['title']
-            if not isinstance(self._title, str):
-                raise TypeError(f'Key \'title\' is not of type {type(str)}')
-
-            self._webpage_url: str = dict['webpage_url']
-            if not isinstance(self._webpage_url, str):
-                raise TypeError(f'Key \'webpage_url\' is not of type {type(str)}')
-
-            self._channel: str = dict['channel']
-            if not isinstance(self._channel, str):
-                raise TypeError(f'Key \'channel\' is not of type {type(str)}')
-
-            self._bitrate: float = dict['abr']
-            if not isinstance(self._bitrate, float):
-                raise TypeError(f'Key \'abr\' is not of type {type(str)}')
-
-            self._thumbnail: str = dict['thumbnail']
-            if not isinstance(self._thumbnail, str):
-                raise TypeError(f'Key \'thumbnail\' is not of type {type(str)}')
-
-        except Exception as error:
-            log.error(error)
-            raise
+    def __init__(self, id: int, user_id: int, video_id: str, title: str, channel: str, thumbnail: str, url: str) -> None:
+        self._id: int = id
+        self._user_id: int = user_id
+        self._video_id: str = video_id
+        self._title: str = title
+        self._channel: str = channel
+        self._thumbnail: str = thumbnail
+        self._url: str = url
 
     @property
     def id(self) -> int:
         return self._id
+
+    @property
+    def user_id(self) -> int:
+        return self._user_id
 
     @property
     def video_id(self) -> str:
@@ -392,24 +386,16 @@ class Metadata(Storable):
         return self._title
     
     @property
-    def url(self) -> str:
-        return self._url
-
+    def channel(self) -> str:
+        return self._channel
+    
     @property
     def thumbnail(self) -> str:
         return self._thumbnail
 
     @property
-    def webpage_url(self) -> str:
-        return self._webpage_url
-
-    @property
-    def channel(self) -> str:
-        return self._channel
-    
-    @property
-    def bitrate(self) -> float:
-        return self._bitrate
+    def url(self) -> str:
+        return self._url
 
     def __table__(self) -> Table:
         # create a table builder
@@ -421,14 +407,18 @@ class Metadata(Storable):
         c_builder: ColumnBuilder = ColumnBuilder()
         # create timestamp column
         t_builder.addColumn(c_builder.setName('ID').setType('INTEGER').isPrimary().isUnique().column())
-        # create timestamp column
+        # create user ID column
+        t_builder.addColumn(c_builder.setName('UserID').setType('INTEGER').column())
+        # create video ID column
         t_builder.addColumn(c_builder.setName('VideoID').setType('TEXT').column())
         # create title column
         t_builder.addColumn(c_builder.setName('Title').setType('TEXT').column())
+        # create channel column
+        t_builder.addColumn(c_builder.setName('Channel').setType('TEXT').column())
+        # create channel column
+        t_builder.addColumn(c_builder.setName('Thumbnail').setType('TEXT').column())
         # create url column
         t_builder.addColumn(c_builder.setName('URL').setType('TEXT').column())
-        # create thumbnail column
-        t_builder.addColumn(c_builder.setName('Thumbnail').setType('TEXT').column())
         
         # build the table
         table: Table = t_builder.table()
@@ -437,12 +427,61 @@ class Metadata(Storable):
 
     def __values__(self) -> Tuple[Any, ...]:
         # create a tuple with the corresponding values
-        value: Tuple[Any, ...] = (self.id, self.video_id, self.title, self.url, self.thumbnail)
+        value: Tuple[Any, ...] = (self.id, self.user_id, self.video_id, self.url, self.title, self.channel, self.thumbnail)
         # return the tuple
         return value
+
+    @classmethod
+    def from_dict(cls, dict: Dict[str, Any], snowflake: int, user_id: int):
+        id: int = snowflake
+        if not isinstance(id, int):
+            raise TypeError(f'Message ID is not of type {type(int)}')
+
+        user_id: int = user_id
+        if not isinstance(user_id, int):
+            raise TypeError(f'User ID is not of type {type(int)}')
+
+        video_id: str = dict['id']
+        if not isinstance(video_id, str):
+            raise TypeError(f'Key \'id\' is not of type {type(str)}')
         
+        title: str = dict['title']
+        if not isinstance(title, str):
+            raise TypeError(f'Key \'title\' is not of type {type(str)}')
+        
+        channel: str = dict['channel']
+        if not isinstance(channel, str):
+            raise TypeError(f'Key \'channel\' is not of type {type(str)}')
+        
+        thumbnail: str = dict['thumbnail']
+        if not isinstance(channel, str):
+            raise TypeError(f'Key \'thumbnail\' is not of type {type(str)}')
+
+        url: str = dict['url']
+        if not isinstance(url, str):
+            raise TypeError(f'Key \'url\' is not of type {type(str)}')
+        
+        return Metadata(id, user_id, video_id, title, channel, thumbnail, url)
+        
+    @classmethod
     def __from_row__(cls: Type[TStorable], row: Row) -> TStorable:
-        pass
+        # Get ID value from the row
+        id: int = row['ID']
+        # Get UserID value from the row
+        user_id: int = row['UserID']
+        # Get VideoID value from the row
+        video_id: str = row['VideoID']
+        # Get URL value from the row
+        url: str = row['URL']
+        # Get Title value from the row
+        title: str = row['Title']
+        # Get Channel value from the row
+        channel: str = row['Channel']
+        # Get thumbnail value from the row
+        thumbnail: str = row['Thumbnail']
+        # return the Metadata
+        return Metadata(id, user_id, video_id, url, title, channel, thumbnail)
+
 
 class AudioRequest():
     """
