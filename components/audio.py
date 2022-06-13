@@ -161,7 +161,7 @@ class Audio():
             options: Optional[str] = join([r'-filter:a', rf'atempo={multiplier}']) if multiplier else None
 
             # create track instance from result data
-            metadata: Metadata = Metadata.from_dict(result, context.message.id, context.message.author.id)
+            metadata: Metadata = Metadata.__from_dict__(result, context.message.id, context.message.author.id)
             # create the metadata table if needed
             self._database.create(metadata)
             # insert the metadata into the table
@@ -432,35 +432,21 @@ class Metadata(Storable):
         return value
 
     @classmethod
-    def from_dict(cls, dict: Dict[str, Any], snowflake: int, user_id: int):
+    def __from_dict__(cls, dict: Dict[str, Any], snowflake: int, user_id: int):
         id: int = snowflake
-        if not isinstance(id, int):
-            raise TypeError(f'Message ID is not of type {type(int)}')
-
+        if not isinstance(id, int): raise TypeError('snowflake')
         user_id: int = user_id
-        if not isinstance(user_id, int):
-            raise TypeError(f'User ID is not of type {type(int)}')
-
+        if not isinstance(user_id, int): raise TypeError('user_id')
         video_id: str = dict['id']
-        if not isinstance(video_id, str):
-            raise TypeError(f'Key \'id\' is not of type {type(str)}')
-        
+        if not isinstance(video_id, str): raise KeyError('id')        
         title: str = dict['title']
-        if not isinstance(title, str):
-            raise TypeError(f'Key \'title\' is not of type {type(str)}')
-        
+        if not isinstance(title, str): raise KeyError('title')        
         channel: str = dict['channel']
-        if not isinstance(channel, str):
-            raise TypeError(f'Key \'channel\' is not of type {type(str)}')
-        
+        if not isinstance(channel, str): raise KeyError('channel')        
         thumbnail: str = dict['thumbnail']
-        if not isinstance(channel, str):
-            raise TypeError(f'Key \'thumbnail\' is not of type {type(str)}')
-
+        if not isinstance(channel, str): raise KeyError('thumbnail')
         url: str = dict['url']
-        if not isinstance(url, str):
-            raise TypeError(f'Key \'url\' is not of type {type(str)}')
-        
+        if not isinstance(url, str): raise KeyError('url')        
         return Metadata(id, user_id, video_id, title, channel, thumbnail, url)
         
     @classmethod
