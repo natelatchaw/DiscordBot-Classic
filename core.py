@@ -33,7 +33,7 @@ class Core(Client):
     async def on_ready(self):
         try:
             component_path: Path = self._settings.ux.components
-            self._handler.load(component_path)
+            self._handler.load(component_path, extension='py', client=self, settings=self._settings)
             self._handler.addLimiter(self._limiter)
         except ValueError as error:
             log.warning(f"Failed to load: {error}")

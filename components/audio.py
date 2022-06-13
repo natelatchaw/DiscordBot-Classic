@@ -13,16 +13,17 @@ from urllib.request import Request
 
 import discord
 from discord import Guild, TextChannel, User, Message
-from matplotlib.image import thumbnail
 import youtube_dl
-from column import Column, ColumnBuilder
+from column import ColumnBuilder
 from context import Context
 from discord import (ClientException, StageChannel, VoiceChannel, VoiceClient,
                      VoiceState)
 from discord.player import AudioSource
 
 from database import Database, Storable, TStorable
+from settings.settings import Settings
 from table import Table, TableBuilder
+from router.configuration import Section
 
 log: Logger = logging.getLogger(__name__)
 
@@ -32,13 +33,39 @@ class Audio():
     Component responsible for audio playback.
     """
 
+    @property
+    def timeout(self) -> float:
+        key: str = "timeout"
+        value: Optional[str] = None
+        try:
+            value = self._config[key]
+            if value and isinstance(value, str):
+                return float(value)
+        except KeyError:
+            self._config[key] = ""
+            return None
+        except ValueError:
+            self._config[key] = ""
+            return None
+
+    @timeout.setter
+    def timeout(self, value: float) -> None:
+        key: str = "timeout"
+        if value: self._config[key] = str(value)        
+
+
     def __init__(self, *args, **kwargs):
         self._loop: Optional[AbstractEventLoop] = None
         self._connection: Event = Event()
         self._playback_event: Event = Event()
         self._playback_queue: Queue = Queue()
-        self._timeout: Optional[float] = None
         self._client: Optional[VoiceClient] = None
+
+        try:
+            self.__client: discord.Client = kwargs['client']
+            self._settings: Settings = kwargs['settings']
+        except KeyError as error:
+            raise AudioError(f'Key {error} was not found in provided kwargs', error)
 
         self.__setup__()
 
@@ -48,6 +75,10 @@ class Audio():
     def __setup__(self) -> None:
         # create database instance
         self._database: Database = Database(Path('./archive/audio.db'))
+        # create a config section for Audio
+        self._settings['Audio'] = Section('Audio', self._settings._parser, self._settings._reference)
+        # create reference to Audio config section
+        self._config: Section = self._settings['Audio']
 
     def __onComplete__(self, error: Optional[Exception]):
         """
@@ -57,8 +88,7 @@ class Audio():
         # set the playback event
         self._playback_event.set()
         # log error if available
-        if error:
-            log.error(error)
+        if error: log.error(error)
 
     async def __start__(self):
         """
@@ -85,7 +115,7 @@ class Audio():
                 log.debug(f'Waiting for next audio request')
 
                 # get an audio request from the queue
-                request: AudioRequest = await asyncio.wait_for(self._playback_queue.get(), self._timeout)
+                request: AudioRequest = await asyncio.wait_for(self._playback_queue.get(), self.timeout)
 
                 log.debug(f'Beginning track \'{request.metadata.title}\'')
 
@@ -179,7 +209,7 @@ class Audio():
             raise
 
 
-    async def timeout(self, context: Context, *, length: Optional[str] = None):
+    async def set_timeout(self, context: Context, *, length: Optional[str] = None):
         """
         Sets the number of seconds the bot should wait before disconnecting
         while idle in a voice channel.
@@ -190,13 +220,13 @@ class Audio():
         try:
             channel: discord.TextChannel = context._message.channel
             
-            self._timeout = float(length) if length else None
+            self.timeout = float(length) if length else None
             if length is None:
                 await context.message.reply(f'Timeout disabled. Bot will not leave the voice channel after the queue is emptied.')
             else:
-                await context.message.reply(f'Timeout set to {self._timeout} seconds. Bot will wait for this duration after the queue is empty before leaving the voice channel.')
-        except ValueError as valueError:
-            await channel.send(valueError)
+                await context.message.reply(f'Timeout set to {self.timeout} seconds. Bot will wait for this duration after the queue is empty before leaving the voice channel.')
+        except ValueError:
+            raise
 
 
     async def connect(self, context: Context):
