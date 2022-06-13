@@ -1,29 +1,24 @@
 import asyncio
-from datetime import datetime, timezone
 import logging
 from asyncio import Event, Queue, Task, TimeoutError
 from asyncio.events import AbstractEventLoop
 from logging import Logger
 from pathlib import Path
-from random import Random
 from shlex import join
-from sqlite3 import Connection, Row
-from typing import Any, Dict, List, NoReturn, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, NoReturn, Optional, Union
 from urllib.request import Request
 
 import discord
-from discord import Guild, TextChannel, User, Message
 import youtube_dl
-from column import ColumnBuilder
 from context import Context
-from discord import (ClientException, StageChannel, VoiceChannel, VoiceClient,
-                     VoiceState)
+from database import Database
+from discord import (Activity, ClientException, Guild, StageChannel, Streaming,
+                     TextChannel, User, VoiceChannel, VoiceClient, VoiceState)
 from discord.player import AudioSource
-
-from database import Database, Storable, TStorable
-from settings.settings import Settings
-from table import Table, TableBuilder
 from router.configuration import Section
+from settings.settings import Settings
+
+from components.models.audio import AudioRequest, Metadata
 
 log: Logger = logging.getLogger(__name__)
 
@@ -60,6 +55,7 @@ class Audio():
         self._playback_event: Event = Event()
         self._playback_queue: Queue = Queue()
         self._vclient: Optional[VoiceClient] = None
+        self._current: Optional[Metadata] = None
 
         try:
             self._client: discord.Client = kwargs['client']
@@ -80,7 +76,7 @@ class Audio():
         # create reference to Audio config section
         self._config: Section = self._settings['Audio']
 
-    def __onComplete__(self, error: Optional[Exception]):
+    def __on_complete__(self, error: Optional[Exception]):
         """
         Called when a source completes in the audio loop.
         This is used internally and should not be called as a command.
@@ -89,6 +85,18 @@ class Audio():
         self._playback_event.set()
         # log error if available
         if error: log.error(error)
+
+    async def __on_dequeue__(self, metadata: Metadata) -> None:
+        """
+        Called when a source is retrieved from the top of the queue.
+        This is used internally and should not be called as a command.
+        """
+        # set the current metadata
+        self._current: Optional[Metadata] = metadata
+        # instantiate activity
+        activity: Activity = Streaming(name=metadata.title)
+        # change the client's presence
+        await self._client.change_presence(activity=activity)
 
     async def __start__(self):
         """
@@ -117,13 +125,16 @@ class Audio():
                 # get an audio request from the queue
                 request: AudioRequest = await asyncio.wait_for(self._playback_queue.get(), self.timeout)
 
+                # update presence
+                await self.__on_dequeue__(request.metadata)
+
                 log.debug(f'Beginning track \'{request.metadata.title}\'')
 
                 # clear the playback event
                 self._playback_event.clear()
 
                 # play the request
-                self._vclient.play(request.source, after=self.__onComplete__)
+                self._vclient.play(request.source, after=self.__on_complete__)
 
                 # wait for the playback event to be set
                 _: True = await self._playback_event.wait()
@@ -384,135 +395,6 @@ class Audio():
             pass
 
         results: List[Metadata] = [Metadata.__from_row__(result) for result in self._database.select()]
-
-
-class Metadata(Storable):
-
-    def __init__(self, id: int, user_id: int, video_id: str, title: str, channel: str, thumbnail: str, url: str) -> None:
-        self._id: int = id
-        self._user_id: int = user_id
-        self._video_id: str = video_id
-        self._title: str = title
-        self._channel: str = channel
-        self._thumbnail: str = thumbnail
-        self._url: str = url
-
-    @property
-    def id(self) -> int:
-        return self._id
-
-    @property
-    def user_id(self) -> int:
-        return self._user_id
-
-    @property
-    def video_id(self) -> str:
-        return self._video_id
-
-    @property
-    def title(self) -> str:
-        return self._title
-    
-    @property
-    def channel(self) -> str:
-        return self._channel
-    
-    @property
-    def thumbnail(self) -> str:
-        return self._thumbnail
-
-    @property
-    def url(self) -> str:
-        return self._url
-
-    def __table__(self) -> Table:
-        # create a table builder
-        t_builder: TableBuilder = TableBuilder()
-        # set the table's name
-        t_builder.setName('Metadata')
-
-        # create a column builder
-        c_builder: ColumnBuilder = ColumnBuilder()
-        # create timestamp column
-        t_builder.addColumn(c_builder.setName('ID').setType('INTEGER').isPrimary().isUnique().column())
-        # create user ID column
-        t_builder.addColumn(c_builder.setName('UserID').setType('INTEGER').column())
-        # create video ID column
-        t_builder.addColumn(c_builder.setName('VideoID').setType('TEXT').column())
-        # create title column
-        t_builder.addColumn(c_builder.setName('Title').setType('TEXT').column())
-        # create channel column
-        t_builder.addColumn(c_builder.setName('Channel').setType('TEXT').column())
-        # create channel column
-        t_builder.addColumn(c_builder.setName('Thumbnail').setType('TEXT').column())
-        # create url column
-        t_builder.addColumn(c_builder.setName('URL').setType('TEXT').column())
-        
-        # build the table
-        table: Table = t_builder.table()
-        # return the table
-        return table
-
-    def __values__(self) -> Tuple[Any, ...]:
-        # create a tuple with the corresponding values
-        value: Tuple[Any, ...] = (self.id, self.user_id, self.video_id, self.url, self.title, self.channel, self.thumbnail)
-        # return the tuple
-        return value
-
-    @classmethod
-    def __from_dict__(cls, dict: Dict[str, Any], snowflake: int, user_id: int):
-        id: int = snowflake
-        if not isinstance(id, int): raise TypeError('snowflake')
-        user_id: int = user_id
-        if not isinstance(user_id, int): raise TypeError('user_id')
-        video_id: str = dict['id']
-        if not isinstance(video_id, str): raise KeyError('id')        
-        title: str = dict['title']
-        if not isinstance(title, str): raise KeyError('title')        
-        channel: str = dict['channel']
-        if not isinstance(channel, str): raise KeyError('channel')        
-        thumbnail: str = dict['thumbnail']
-        if not isinstance(channel, str): raise KeyError('thumbnail')
-        url: str = dict['url']
-        if not isinstance(url, str): raise KeyError('url')        
-        return Metadata(id, user_id, video_id, title, channel, thumbnail, url)
-        
-    @classmethod
-    def __from_row__(cls: Type[TStorable], row: Row) -> TStorable:
-        # Get ID value from the row
-        id: int = row['ID']
-        # Get UserID value from the row
-        user_id: int = row['UserID']
-        # Get VideoID value from the row
-        video_id: str = row['VideoID']
-        # Get URL value from the row
-        url: str = row['URL']
-        # Get Title value from the row
-        title: str = row['Title']
-        # Get Channel value from the row
-        channel: str = row['Channel']
-        # Get thumbnail value from the row
-        thumbnail: str = row['Thumbnail']
-        # return the Metadata
-        return Metadata(id, user_id, video_id, url, title, channel, thumbnail)
-
-
-class AudioRequest():
-    """
-    A request object for the bot to play.
-    """
-
-    def __init__(self, source: AudioSource, metadata: Metadata):
-        self._metadata: Metadata = metadata
-        self._source: AudioSource = source
-    
-    @property
-    def metadata(self) -> Metadata:
-        return self._metadata
-
-    @property
-    def source(self) -> AudioSource:
-        return self._source
 
 
 class AudioLogger():
