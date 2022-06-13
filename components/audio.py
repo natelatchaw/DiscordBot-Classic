@@ -59,10 +59,10 @@ class Audio():
         self._connection: Event = Event()
         self._playback_event: Event = Event()
         self._playback_queue: Queue = Queue()
-        self._client: Optional[VoiceClient] = None
+        self._vclient: Optional[VoiceClient] = None
 
         try:
-            self.__client: discord.Client = kwargs['client']
+            self._client: discord.Client = kwargs['client']
             self._settings: Settings = kwargs['settings']
         except KeyError as error:
             raise AudioError(f'Key {error} was not found in provided kwargs', error)
@@ -104,7 +104,7 @@ class Audio():
                 _: True = await self._connection.wait()
 
                 # if the VoiceClient is not available
-                if self._client is None:
+                if self._vclient is None:
                     log.debug(f'No voice client available.')
                     log.debug('Resetting...')
                     # clear the connection event
@@ -123,7 +123,7 @@ class Audio():
                 self._playback_event.clear()
 
                 # play the request
-                self._client.play(request.source, after=self.__onComplete__)
+                self._vclient.play(request.source, after=self.__onComplete__)
 
                 # wait for the playback event to be set
                 _: True = await self._playback_event.wait()
@@ -132,9 +132,9 @@ class Audio():
 
             except TimeoutError as error:
                 log.error(error)
-                if self._client:
-                    await self._client.disconnect(force=True)
-                    self._client: Optional[VoiceClient] = None
+                if self._vclient:
+                    await self._vclient.disconnect(force=True)
+                    self._vclient: Optional[VoiceClient] = None
                 self._connection.clear()
 
             except Exception as error:
@@ -218,8 +218,6 @@ class Audio():
         - length: the number of seconds to wait
         """
         try:
-            channel: discord.TextChannel = context._message.channel
-            
             self.timeout = float(length) if length else None
             if length is None:
                 await context.message.reply(f'Timeout disabled. Bot will not leave the voice channel after the queue is emptied.')
@@ -244,7 +242,7 @@ class Audio():
 
         self._channel: Optional[Union[VoiceChannel, StageChannel]] = state.channel
         try:
-            self._client: Optional[VoiceClient] = await self._channel.connect()
+            self._vclient: Optional[VoiceClient] = await self._channel.connect()
             self._connection.set()
         except RuntimeError as error:
             raise
@@ -258,17 +256,17 @@ class Audio():
         """
 
         try:
-            if not self._client:
+            if not self._vclient:
                 raise ConnectionError('Cannot disconnect: Not connected to begin with.')
-            elif not self._client.is_connected():
+            elif not self._vclient.is_connected():
                 raise ConnectionError('Cannot disconnect: Not connected to begin with.')
             else:
                 self._playback_event.set()
-                await self._client.disconnect()
+                await self._vclient.disconnect()
         except ConnectionError:
             raise
         except:
-            await self._client.disconnect(force=True)
+            await self._vclient.disconnect(force=True)
         finally:
             self._connection.clear()
 
@@ -333,8 +331,8 @@ class Audio():
         """
         Pauses audio playback.
         """
-        if self._client:
-            self._client.pause()
+        if self._vclient:
+            self._vclient.pause()
             return
 
 
@@ -342,8 +340,8 @@ class Audio():
         """
         Skips the current track.
         """
-        if self._client:
-            self._client.source = AudioSource()
+        if self._vclient:
+            self._vclient.source = AudioSource()
             return
 
     
@@ -351,8 +349,8 @@ class Audio():
         """
         Stops audio playback.
         """
-        if self._client:
-            self._client.stop()
+        if self._vclient:
+            self._vclient.stop()
             self.disconnect(context)
             return
 
