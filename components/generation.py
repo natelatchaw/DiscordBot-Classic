@@ -1,16 +1,19 @@
+import logging
 import re
 import sqlite3
 from datetime import datetime, timezone
+from functools import partial, partialmethod
 from pathlib import Path
 from time import process_time
-from typing import List, Optional, Pattern, Tuple
+from typing import List, Optional, Pattern, Tuple, Union
 
 import discord
 import markovify
 import nltk
 from context import Context
-from discord import Guild, Message, TextChannel, User
+from discord import ClientUser, Guild, Member, Message, TextChannel, User
 from providers.channelArchive import ChannelArchive
+from settings.settings import Settings
 
 nltk.download('averaged_perceptron_tagger')
 
@@ -24,15 +27,30 @@ class POSifiedText(markovify.NewlineText):
         sentence = " ".join(word.split("::")[0] for word in words)
         return sentence
 
+    
+class ChannelUser:
+    def __init__(self, guild: Guild, channel: TextChannel) -> None:
+        self.id: int = channel.id
+        self.name: str = channel.name
+        self.avatar_url: str = guild.icon_url
+        self.mention: str = channel.mention
+
+
 class Generation():
     """
     """
 
     def __init__(self, *args, **kwargs):
         self._root: Path = Path('./archive/models')
-        self.__compile__()
+        self.__compile_regex__()
 
-    def __compile__(self) -> None:
+        try:
+            self._client: discord.Client = kwargs['client']
+            self._settings: Settings = kwargs['settings']
+        except KeyError as error:
+            raise Exception(f'Key {error} was not found in provided kwargs')
+
+    def __compile_regex__(self) -> None:
         """
         Compile regex patterns used in message analyzation.
         """
@@ -89,29 +107,43 @@ class Generation():
         return file.read_text()
 
 
-    async def compile(self, context: Context) -> None:
+    async def __get_target__(self, context: Context) -> Optional[Union[User, Member, ClientUser, ChannelUser]]:
 
         message: Message = await context.message.reply('Compiling...')
 
         guild: Guild = context.message.guild
         channel: TextChannel = context.message.channel
-        user: User = context.message.author
+        user: Optional[Union[User, Member, ClientUser, ChannelUser]] = None
 
         try:
-            mention: Optional[User] = context.message.mentions.pop(0)
-            if mention: user = mention
+            user = context.message.mentions.pop(0)
         except IndexError:
-            pass
+            # user = context.message.author
+            user = ChannelUser(guild, channel)
+        
+        return user
 
+
+    async def compile(self, context: Context) -> None:
+
+        guild: Guild = context.message.guild
+        channel: TextChannel = context.message.channel
+
+        user: Optional[Union[User, Member, ClientUser, ChannelUser]] = await self.__get_target__(context)
         archive: ChannelArchive = context.archive[guild.id][channel.id]
+
+        message: Message = await context.message.reply('Compiling...')
 
         start: float = process_time()
 
-        sql: str = '''
+        select: str = '''
         SELECT * FROM Messages
+        '''
+        where: str = '''
         WHERE AuthorID = ?
         '''
-        parameters: Tuple = (user.id, )
+        sql = f'{select} {where}' if user else f'{select}'        
+        parameters: Tuple = (user.id, ) if user else ()
 
         archive._cursor.execute(sql, parameters)
         rows: List[sqlite3.Row] = archive._cursor.fetchall()
@@ -121,6 +153,7 @@ class Generation():
         texts = [text for text in texts if text]
         text: str = '\n'.join(texts)
 
+        
         model: POSifiedText = POSifiedText(text)
         json: str = model.to_json()
         self.__save__(guild, channel, user, json)
@@ -136,16 +169,12 @@ class Generation():
 
         guild: Guild = context.message.guild
         channel: TextChannel = context.message.channel
-        user: User = context.message.author
 
-        try:
-            mention: Optional[User] = context.message.mentions.pop(0)
-            if mention: user = mention
-        except IndexError:
-            pass
+        user: Optional[Union[User, Member, ClientUser, ChannelUser]] = await self.__get_target__(context)
+        archive: ChannelArchive = context.archive[guild.id][channel.id]
 
-        json: str = self.__load__(guild, channel, user)
-        model: POSifiedText = POSifiedText.from_json(json)
+        json_str: str = self.__load__(guild, channel, user)
+        model: POSifiedText = POSifiedText.from_json(json_str)
         sentence: Optional[str] = model.make_sentence(tries=int(tries))
         if not sentence: 
             raise ValueError('Could not generate content; not enough source data. Try increasing value of the `-tries` flag (default 10).')
@@ -156,6 +185,50 @@ class Generation():
         embed.timestamp = datetime.now(tz=timezone.utc)
 
         response: Message = await channel.send(embed=embed)
+
+    
+    async def talk(self, context: Context, *, about: str, tries: Union[int, str] = 10, loops: Union[int, str] = 1000) -> None:
+
+        guild: Guild = context.message.guild
+        channel: TextChannel = context.message.channel
+
+        user: Optional[Union[User, Member, ClientUser, ChannelUser]] = await self.__get_target__(context)
+        archive: ChannelArchive = context.archive[guild.id][channel.id]
+
+        json_str: str = self.__load__(guild, channel, user)
+        model: POSifiedText = POSifiedText.from_json(json_str)
+
+        loop: int = 0
+        loops = loops if isinstance(loops, int) else int(loops)
+        tries = tries if isinstance(tries, int) else int(tries)
+
+        attempt: Optional[str] = None
+        sentence: Optional[str] = None
+        
+        while loop < loops:
+            loop = loop + 1
+            attempt = model.make_sentence(tries=int(tries))
+            if not attempt:
+                continue
+            elif about.lower() not in attempt.lower():
+                continue
+            else:
+                sentence = attempt
+                break
+        
+        if not sentence:
+            raise ValueError(f'Could not find content containing {about} in {loops} attempts.')
+        
+        embed: discord.Embed = discord.Embed()
+        embed.set_author(name=user.name, icon_url=user.avatar_url)
+        embed.description = sentence
+        embed.timestamp = datetime.now(tz=timezone.utc)
+        
+        if self._settings.ux.verbose:
+            embed.add_field(name='attempt', value=f'{loop}/{loops}')
+
+        response: Message = await channel.send(embed=embed)
+
         
 
 
