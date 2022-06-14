@@ -23,6 +23,26 @@ class OpenAI():
             self._config[key] = ""
             return None
 
+
+    @property
+    def is_enabled(self) -> bool:
+        key: str = "enabled"
+        value: Optional[str] = None
+        try:
+            value = self._config[key]
+        except KeyError:
+            self._config[key] = ""
+
+        if value and isinstance(value, str):
+            return value.lower() == str(True).lower()
+        else:
+            return False
+    @is_enabled.setter
+    def is_enabled(self, value: bool) -> None:
+        key: str = "enabled"
+        self._config[key] = str(value)
+
+
     def __init__(self, *args, **kwargs) -> None:
         try:
             self._client: Client = kwargs['client']
@@ -42,6 +62,7 @@ class OpenAI():
         openai.api_key = self.key
 
     async def prompt(self, context: Context, *, content: str, model: str = 'text-davinci-002', max_tokens: Union[str, int] = 128) -> None:
+        if not self.is_enabled: raise ValueError(f'This command has been disabled in configuration.')
         user: Union[User, Member] = context.message.author
         id: int = hash(user.id)
         max_tokens = max_tokens if isinstance(max_tokens, int) else int(max_tokens)
