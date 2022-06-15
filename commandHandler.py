@@ -40,7 +40,7 @@ class CommandHandler(Handler):
         self._limiter = limiter
 
     async def handle(self, prefix: str, message: Message, *, context: Context):
-        
+
         # create args list from context instance
         args: List[Any] = [context]
         # get command from message
@@ -53,7 +53,7 @@ class CommandHandler(Handler):
         try:
             # ratelimit check the message if available
             if self._limiter: self._limiter.check(message)
-            # call superclass to finish processing the message
+            # call super to finish processing the message
             await super().process(command_message, args=args)
         except Exception as error:
             log.error(error)
