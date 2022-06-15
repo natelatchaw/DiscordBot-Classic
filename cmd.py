@@ -1,13 +1,12 @@
 import asyncio
-from logging import FileHandler, Formatter, Logger, StreamHandler
 import logging
 import sys
+from logging import FileHandler, Formatter, Logger, StreamHandler
 
 from router.handler import Handler
+
 from commandHandler import CommandHandler
-
 from settings import Settings
-
 
 log: Logger = logging.getLogger(__name__)
 

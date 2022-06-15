@@ -1,7 +1,6 @@
 import io
 from typing import Any, Callable
 
-import PIL
 import torch
 from context import Context
 from discord import File, TextChannel

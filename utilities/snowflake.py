@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from logging import Logger
 from typing import Literal
 
-
 log: Logger = logging.getLogger(__name__)
 
 # define discord epoch

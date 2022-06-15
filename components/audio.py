@@ -11,11 +11,11 @@ from urllib.request import Request
 import discord
 import youtube_dl
 from context import Context
-from database import Database
 from discord import (Activity, ClientException, Guild, StageChannel, Streaming,
                      TextChannel, User, VoiceChannel, VoiceClient, VoiceState)
 from discord.player import AudioSource
 from router.configuration import Section
+from database.database import Database
 from settings.settings import Settings
 
 from components.models.audio import AudioRequest, Metadata

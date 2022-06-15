@@ -74,7 +74,6 @@ class Archive():
 
         import matplotlib.pyplot as pyplot
         import numpy
-        import PIL
         from matplotlib.figure import Figure
         from matplotlib.pyplot import Axes
         from PIL import Image

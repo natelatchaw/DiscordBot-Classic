@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 import logging
 import re
 from datetime import datetime, timezone
@@ -7,12 +6,13 @@ from pathlib import Path
 from typing import Dict, Optional, Union
 
 import discord
-from discord import Client, Intents, Message, User, Member, TextChannel, DMChannel, GroupChannel
+from discord import (Client, DMChannel, GroupChannel, Intents, Member, Message,
+                     TextChannel, User)
 from pip import List
-from context import Context
 from router import HandlerError
 
 from commandHandler import CommandHandler, MissingPrefixError
+from context import Context
 from providers.archiver import Archive
 from rateLimiter import RateLimiter
 from settings import Settings

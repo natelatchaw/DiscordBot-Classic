@@ -1,10 +1,10 @@
-from datetime import datetime, timedelta, timezone
 import logging
+from collections import deque
+from datetime import datetime, timedelta
 from logging import Logger
 from typing import Dict, Optional, Union
-from collections import deque
 
-from discord import Message, User, Member
+from discord import Member, Message, User
 
 from settings.settings import Settings
 

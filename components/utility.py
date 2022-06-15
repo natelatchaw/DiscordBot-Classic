@@ -1,10 +1,9 @@
 from datetime import datetime, timezone
-from optparse import Option
 from typing import List, Optional
 
 import discord
-from discord import TextChannel, Guild, User
 from context import Context
+from discord import Guild, TextChannel, User
 from providers.channelArchive import ChannelArchive
 from providers.guildArchive import GuildArchive
 from settings import Settings

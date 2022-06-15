@@ -1,8 +1,6 @@
-import logging
 import re
 import sqlite3
 from datetime import datetime, timezone
-from functools import partial, partialmethod
 from pathlib import Path
 from time import process_time
 from typing import List, Optional, Pattern, Tuple, Union

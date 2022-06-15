@@ -1,8 +1,9 @@
 
+import sqlite3
 from pathlib import Path
 from sqlite3 import Connection, Row
-import sqlite3
-from typing import Any, Callable, Dict, List, Protocol, Tuple, Type, TypeVar
+from typing import List, Type
+
 from database.storable import TStorable
 from table import Table
 

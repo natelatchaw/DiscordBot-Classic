@@ -2,9 +2,8 @@ import collections
 import logging
 from logging import Logger
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Dict, Iterator, List, Optional
 
-import discord
 from discord import Guild, Message
 
 from providers.channelArchive import ChannelArchive
