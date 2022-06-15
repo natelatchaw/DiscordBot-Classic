@@ -22,12 +22,10 @@ class RateLimiter():
         Raises an error if message fails to meet policy.
         '''
 
-        try:
-            rate: float = self._settings.limiting.rate
-            count: int = self._settings.limiting.count
-        except ValueError as error:
-            log.warning(error)
-            return
+        rate: Optional[float] = self._settings.limiting.rate
+        count: Optional[int] = self._settings.limiting.count
+
+        if not rate or not count: return
 
         author: Union[User, Member] = message.author
         timestamp: datetime = message.created_at
@@ -37,8 +35,13 @@ class RateLimiter():
 
         queue: deque = self._history[author.id]
         
-        log.info(f'cur: {len(queue)}')
-        log.info(f'max: {queue.maxlen}')
+        log.warn(f'Message Queue: {len(queue)}/{queue.maxlen}')
+        log.warn(queue)
+
+        if len(queue) < queue.maxlen:
+            # append the current message's timestamp to the deque
+            queue.append(timestamp)
+            return
 
         try:
             oldest: datetime = queue[0]
@@ -47,8 +50,9 @@ class RateLimiter():
                 raise RateLimitActiveException(delta, rate)
             # append the current message's timestamp to the deque
             queue.append(timestamp)
-
-        except IndexError as error:
+        except RateLimitActiveException:
+            raise
+        else:
             # append the current message's timestamp to the deque
             queue.append(timestamp)
 
@@ -68,4 +72,9 @@ class RateLimitActiveException(RateLimiterError):
     def __init__(self, delta: timedelta, rate: float, exception: Optional[Exception] = None):
         remaining: float = rate - delta.total_seconds()
         message: str = f'Triggered rate limit: try again in {"%.2f" % remaining}s'
+        super().__init__(message, exception)
+
+class QueueNotFull(RateLimiterError):
+    def __init__(self, message: str, exception: Optional[Exception] = None):
+        message: str = 'Queue is not full. '
         super().__init__(message, exception)

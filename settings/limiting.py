@@ -1,5 +1,6 @@
 import logging
 from logging import Logger
+from typing import Optional
 
 from settings.section import SettingsSection
 
@@ -8,7 +9,7 @@ log: Logger = logging.getLogger(__name__)
 class LimiterSettings(SettingsSection):
 
     @property
-    def rate(self) -> float:
+    def rate(self) -> Optional[float]:
         key: str = "rate"
         return self.get_float(key)
     @rate.setter
@@ -18,7 +19,7 @@ class LimiterSettings(SettingsSection):
 
 
     @property
-    def count(self) -> int:
+    def count(self) -> Optional[int]:
         key: str = "count"
         return self.get_integer(key)
     @count.setter
