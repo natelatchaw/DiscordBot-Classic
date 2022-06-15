@@ -1,32 +1,16 @@
-from logging import Logger
 import logging
-from typing import Optional
-from router.configuration import Section
+from logging import Logger
 
+from settings.section import SettingsSection
 
 log: Logger = logging.getLogger(__name__)
 
-
-class LimiterSettings(Section):
+class LimiterSettings(SettingsSection):
 
     @property
     def rate(self) -> float:
         key: str = "rate"
-        value: Optional[str] = None
-        try:
-            value = self[key]
-        except KeyError:
-            self[key] = ""
-            value = None
-
-        if value and isinstance(value, str):
-            return float(value)
-        else:
-            self[key] = ""
-            raise ValueError(
-                f"No {key} provided for {self._reference.name}:{self._name}:{key}"
-            )
-
+        return self.get_float(key)
     @rate.setter
     def rate(self, value: float) -> None:
         key: str = "rate"
@@ -36,21 +20,7 @@ class LimiterSettings(Section):
     @property
     def count(self) -> int:
         key: str = "count"
-        value: Optional[str] = None
-        try:
-            value = self[key]
-        except KeyError:
-            self[key] = ""
-            value = None
-
-        if value and isinstance(value, str):
-            return int(value)
-        else:
-            self[key] = ""
-            raise ValueError(
-                f"No {key} provided for {self._reference.name}:{self._name}:{key}"
-            )
-
+        return self.get_integer(key)
     @count.setter
     def count(self, value: int) -> None:
         key: str = "count"

@@ -62,6 +62,7 @@ class OpenAI():
         openai.api_key = self.key
 
     async def prompt(self, context: Context, *, content: str, model: str = 'text-davinci-002', max_tokens: Union[str, int] = 128) -> None:
+        print(content)
         if not self.is_enabled: raise ValueError(f'This command has been disabled in configuration.')
         user: Union[User, Member] = context.message.author
         id: int = hash(user.id)

@@ -41,15 +41,18 @@ class CommandHandler(Handler):
 
     async def handle(self, prefix: str, message: Message, *, context: Context):
 
-        # create args list from context instance
-        args: List[Any] = [context]
-        # get command from message
-        command_match: Optional[Match[Any]] = re.match(rf"^{prefix}[\w]+", message.content)
-        # if the prefixed command could not be found at the beginning of the message
-        if not command_match: raise MissingPrefixError()
-        # remove prefix from message content
-        command_message: str = re.sub(rf"^{prefix}", "", message.content)
-
+        try:
+            # create args list from context instance
+            args: List[Any] = [context]
+            # get command from message
+            command_match: Optional[Match[Any]] = re.match(rf"^{prefix}[\w]+", message.content)
+            # if the prefixed command could not be found at the beginning of the message
+            if not command_match: raise MissingPrefixError()
+            # remove prefix from message content
+            command_message: str = re.sub(rf"^{prefix}", "", message.content)
+        except Exception as error:
+            raise MessageParseError(error)
+            
         try:
             # ratelimit check the message if available
             if self._limiter: self._limiter.check(message)
@@ -60,11 +63,16 @@ class CommandHandler(Handler):
             log.error(''.join(traceback.format_tb(error.__traceback__)))
 
             embed: Embed = self.__build_error_message__(error, context.settings.ux.verbose)
-            embed.set_author(name=context.client.user.name, icon_url=context.client.user.avatar_url)
+            embed.set_author(name=context.client.user.name, icon_url=str(context.client.user.avatar_url))
             await message.reply(embed=embed)
 
 
 class MissingPrefixError(HandlerError):
     def __init__(self, exception: Optional[Exception] = None):
-        message: str = f"Message did not begin with a prefix."
+        message: str = f'Message did not begin with a prefix.'
+        super().__init__(message, exception)
+
+class MessageParseError(HandlerError):
+    def __init__(self, exception: Optional[Exception] = None):
+        message: str = f'An error occurred while parsing the message: {str(exception) if exception else "No info provided"}'
         super().__init__(message, exception)

@@ -61,6 +61,7 @@ class Core(Client):
         if message.author.id == self.user.id:
             return
         try:
+            prefix: Optional[str] = self._settings.ux.prefix
             context: Context = Context(
                 self,
                 message,
@@ -70,12 +71,10 @@ class Core(Client):
                 self._handler._packages,
             )
             # process the message
-            await self._handler.handle(self._settings.ux.prefix, message, context=context)
+            if prefix: await self._handler.handle(prefix, message, context=context)
         except MissingPrefixError:
             pass
         except HandlerError as error:
-            log.error(error)
-        except ValueError as error:
             log.error(error)
 
     def archive_message(self, message: Message):

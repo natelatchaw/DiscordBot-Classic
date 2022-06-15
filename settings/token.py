@@ -1,12 +1,12 @@
-from logging import Logger
 import logging
+from logging import Logger
 from typing import MutableMapping, Optional
-from router.configuration import Section
 
+from settings.section import SettingsSection
 
 log: Logger = logging.getLogger(__name__)
 
-class TokenSettings(Section):
+class TokenSettings(SettingsSection):
     @property
     def active(self) -> str:
         defaults: MutableMapping[str, str] = self._parser.defaults()
@@ -33,18 +33,6 @@ class TokenSettings(Section):
         defaults[key] = value
 
     @property
-    def current(self) -> str:
+    def current(self) -> Optional[str]:
         key: str = self.active
-        value: Optional[str] = None
-        try:
-            value = self[key]
-        except KeyError:
-            self[key] = ""
-
-        if value and isinstance(value, str):
-            return value
-        else:
-            self[key] = ""
-            raise ValueError(
-                f"No token provided for {self._reference.name}:{self._name}:{key}"
-            )
+        return self.get_string(key)

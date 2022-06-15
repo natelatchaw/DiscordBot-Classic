@@ -1,11 +1,15 @@
+import logging
+from logging import Logger
 from pathlib import Path
 from typing import cast
 
 from router.configuration import Configuration
-from settings.limiting import LimiterSettings
 
+from settings.limiting import LimiterSettings
 from settings.token import TokenSettings
 from settings.ux import UXSettings
+
+log: Logger = logging.getLogger(__name__)
 
 
 class Settings(Configuration):

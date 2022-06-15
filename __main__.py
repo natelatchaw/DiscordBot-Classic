@@ -1,6 +1,7 @@
 import logging
 import sys
 from logging import FileHandler, Formatter, Logger, StreamHandler
+from typing import Optional
 
 import discord
 import router
@@ -44,7 +45,9 @@ log: Logger = logging.getLogger(__name__)
 
 try:
     client = Core()
-    client.loop.run_until_complete(client.start(client._settings.token.current))
+    token: Optional[str] = client._settings.token.current
+    if not token: raise ValueError('No token was found in the configuration!')
+    client.loop.run_until_complete(client.start(token))
 except KeyboardInterrupt:
     client.loop.run_until_complete(client.close())
 except Exception as error:

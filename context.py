@@ -3,7 +3,6 @@ from typing import Dict
 from discord import Client, Message
 from providers.archiver import Archive
 from router.packaging import Package
-from providers.guildArchive import GuildArchive
 
 from settings import Settings
 
