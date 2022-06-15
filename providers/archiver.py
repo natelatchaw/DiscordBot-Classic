@@ -18,16 +18,21 @@ class Archive(collections.abc.MutableMapping):
         # initialize the archive directory
         self._archives: Dict[int, GuildArchive] = dict()
 
-    def load(self, directory: Path, guilds: List[Guild]) -> None:
+    def load(self, directory: Path, guild: Guild) -> None:
         # resolve the provided directory path
         directory = directory.resolve()
-        log.debug('Resolved provided directory to %s', directory)
 
         # if the provided directory doesn't exist
         if not directory.exists(): directory.mkdir(parents=True, exist_ok=True)
 
-        # create the archives dictionary
-        self._archives = {guild.id: GuildArchive(guild, directory) for guild in guilds}
+        # create and add the archive
+        self._archives[guild.id] = GuildArchive(guild, directory)
+
+
+    def load(self, directory: Path, guilds: List[Guild]) -> None:
+        # resolve the provided directory path
+        directory = directory.resolve()
+        for guild in guilds: self.load(directory, guild)
         
     def __setitem__(self, key: int, value: GuildArchive) -> None:
         self._archives.__setitem__(key, value)
