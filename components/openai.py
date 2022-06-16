@@ -82,7 +82,7 @@ class OpenAI():
         user: Union[User, Member] = context.message.author
         id: int = hash(user.id)
         max_tokens = max_tokens if isinstance(max_tokens, int) else int(max_tokens)
-        content = f'write about {content.strip()}'
+        content: str = f'write about {about.strip()}'
         completion: OpenAIObject = openai.Completion.create(model=model, prompt=content, echo=True, max_tokens=max_tokens, user=str(id))
         print(completion.to_dict_recursive())
         responses: List = completion.choices
