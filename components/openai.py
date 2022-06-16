@@ -73,7 +73,7 @@ class OpenAI():
         responses: List = completion.choices
         response: str = responses.pop(0).text
 
-        lines: List[str] = textwrap.wrap(response, 1800, break_long_words=False)
+        lines: List[str] = textwrap.wrap(response, 1800, break_long_words=False, replace_whitespace=False)
         block_tag: str = '```'
         for line in lines: await context.message.reply(f'{block_tag}\n{line}\n{block_tag}')
 
@@ -88,6 +88,25 @@ class OpenAI():
         responses: List = completion.choices
         response: str = responses.pop(0).text
 
-        lines: List[str] = textwrap.wrap(response, 1800, break_long_words=False)
+        lines: List[str] = textwrap.wrap(response, 1800, break_long_words=False, replace_whitespace=False)
+        block_tag: str = '```'
+        for line in lines: await context.message.reply(f'{block_tag}\n{line}\n{block_tag}')
+
+    async def greentext(self, context: Context, *, model: str = 'text-davinci-002', max_tokens: Union[str, int] = 256) -> None:
+        if not self.is_enabled: raise ValueError(f'This command has been disabled in configuration.')
+        user: Union[User, Member] = context.message.author
+        id: int = hash(user.id)
+        max_tokens = max_tokens if isinstance(max_tokens, int) else int(max_tokens)
+        content = textwrap.dedent('''
+            generate a 4chan greentext
+
+            >Be me
+        ''')
+        completion: OpenAIObject = openai.Completion.create(model=model, prompt=content, echo=True, max_tokens=max_tokens, user=str(id))
+        print(completion.to_dict_recursive())
+        responses: List = completion.choices
+        response: str = responses.pop(0).text
+
+        lines: List[str] = textwrap.wrap(response, 1800, break_long_words=False, replace_whitespace=False)
         block_tag: str = '```'
         for line in lines: await context.message.reply(f'{block_tag}\n{line}\n{block_tag}')
