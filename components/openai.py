@@ -1,3 +1,4 @@
+import textwrap
 from typing import List, Optional, Union
 
 from context import Context
@@ -71,8 +72,10 @@ class OpenAI():
         print(completion.to_dict_recursive())
         responses: List = completion.choices
         response: str = responses.pop(0).text
+
+        lines: List[str] = textwrap.wrap(response, 1800, break_long_words=False)
         block_tag: str = '```'
-        await context.message.reply(f'{block_tag}\n{response}\n{block_tag}')
+        for line in lines: await context.message.reply(f'{block_tag}\n{line}\n{block_tag}')
 
     async def write(self, context: Context, *, about: str, model: str = 'text-davinci-002', max_tokens: Union[str, int] = 128) -> None:
         if not self.is_enabled: raise ValueError(f'This command has been disabled in configuration.')
@@ -84,5 +87,7 @@ class OpenAI():
         print(completion.to_dict_recursive())
         responses: List = completion.choices
         response: str = responses.pop(0).text
+
+        lines: List[str] = textwrap.wrap(response, 1800, break_long_words=False)
         block_tag: str = '```'
-        await context.message.reply(f'{block_tag}\n{response}\n{block_tag}')
+        for line in lines: await context.message.reply(f'{block_tag}\n{line}\n{block_tag}')
