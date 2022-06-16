@@ -28,7 +28,7 @@ class Archive(collections.abc.MutableMapping):
         self._archives[guild.id] = GuildArchive(guild, directory)
 
 
-    def load(self, directory: Path, guilds: List[Guild]) -> None:
+    def load_all(self, directory: Path, guilds: List[Guild]) -> None:
         # resolve the provided directory path
         directory = directory.resolve()
         for guild in guilds: self.load(directory, guild)
