@@ -83,7 +83,7 @@ class OpenAI():
         id: int = hash(user.id)
         tokens = tokens if isinstance(tokens, int) else int(tokens)
         content: str = f'write about {about.strip()}'
-        completion: OpenAIObject = openai.Completion.create(model=model, prompt=content, echo=True, max_tokens=tokens, user=str(id))
+        completion: OpenAIObject = openai.Completion.create(model=model, prompt=content, echo=False, max_tokens=tokens, user=str(id))
         print(completion.to_dict_recursive())
         responses: List = completion.choices
         response: str = responses.pop(0).text
