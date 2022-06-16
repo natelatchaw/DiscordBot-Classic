@@ -1,8 +1,8 @@
 from sqlite3 import Row
 from typing import Any, Dict, Tuple, Type
 
-from database import Storable, TStorable
 from database.column import ColumnBuilder
+from database.storable import Storable, TStorable
 from database.table import Table, TableBuilder
 from discord import AudioSource
 
