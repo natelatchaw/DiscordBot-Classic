@@ -62,12 +62,24 @@ class OpenAI():
         openai.api_key = self.key
 
     async def prompt(self, context: Context, *, content: str, model: str = 'text-davinci-002', max_tokens: Union[str, int] = 128) -> None:
-        print(content)
         if not self.is_enabled: raise ValueError(f'This command has been disabled in configuration.')
         user: Union[User, Member] = context.message.author
         id: int = hash(user.id)
         max_tokens = max_tokens if isinstance(max_tokens, int) else int(max_tokens)
         content = content.strip()
+        completion: OpenAIObject = openai.Completion.create(model=model, prompt=content, echo=True, max_tokens=max_tokens, user=str(id))
+        print(completion.to_dict_recursive())
+        responses: List = completion.choices
+        response: str = responses.pop(0).text
+        block_tag: str = '```'
+        await context.message.reply(f'{block_tag}\n{response}\n{block_tag}')
+
+    async def write(self, context: Context, *, about: str, model: str = 'text-davinci-002', max_tokens: Union[str, int] = 128) -> None:
+        if not self.is_enabled: raise ValueError(f'This command has been disabled in configuration.')
+        user: Union[User, Member] = context.message.author
+        id: int = hash(user.id)
+        max_tokens = max_tokens if isinstance(max_tokens, int) else int(max_tokens)
+        content = f'write about {content.strip()}'
         completion: OpenAIObject = openai.Completion.create(model=model, prompt=content, echo=True, max_tokens=max_tokens, user=str(id))
         print(completion.to_dict_recursive())
         responses: List = completion.choices
