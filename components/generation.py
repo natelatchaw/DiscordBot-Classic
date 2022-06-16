@@ -13,7 +13,7 @@ from discord import ClientUser, Guild, Member, Message, TextChannel, User
 from providers.channelArchive import ChannelArchive
 from settings.settings import Settings
 
-nltk.download('averaged_perceptron_tagger')
+nltk.download('averaged_perceptron_tagger', quiet=True)
 
 class POSifiedText(markovify.NewlineText):
     def word_split(self, sentence):
