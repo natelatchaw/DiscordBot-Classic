@@ -50,6 +50,8 @@ class CommandHandler(Handler):
             if not command_match: raise MissingPrefixError()
             # remove prefix from message content
             command_message: str = re.sub(rf"^{prefix}", "", message.content)
+        except MissingPrefixError:
+            raise
         except Exception as error:
             raise MessageParseError(error)
             
