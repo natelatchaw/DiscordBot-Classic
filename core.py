@@ -42,7 +42,8 @@ class Core(Client):
 
         try:
             archive_path: Path = Path('./archive')
-            self._archive.load_all(archive_path, guilds=self.guilds)
+            for guild in self.guilds:
+                self._archive.load(archive_path, guild)
             await self._archive.fetch()
         except Exception:
             raise

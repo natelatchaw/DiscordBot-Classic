@@ -26,12 +26,6 @@ class Archive(collections.abc.MutableMapping):
 
         # create and add the archive
         self._archives[guild.id] = GuildArchive(guild, directory)
-
-
-    def load_all(self, directory: Path, guilds: List[Guild]) -> None:
-        # resolve the provided directory path
-        directory = directory.resolve()
-        for guild in guilds: self.load(directory, guild)
         
     def __setitem__(self, key: int, value: GuildArchive) -> None:
         self._archives.__setitem__(key, value)
