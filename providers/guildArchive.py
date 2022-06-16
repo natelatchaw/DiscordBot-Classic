@@ -52,4 +52,4 @@ class GuildArchive(collections.abc.MutableMapping):
             try:
                 await archive.fetch()
             except discord.Forbidden as error:
-                log.error(error)
+                log.error(f'#{archive._channel.name}: {error}')
