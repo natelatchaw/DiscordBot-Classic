@@ -94,7 +94,7 @@ class OpenAI():
         # calculate the total token count
         token_count: int = sum([await self.__get_tokens__(response) for response in responses])
         # create submission object
-        submission: Submission = Submission(context.message.id, user.id, prompt, '###'.join(responses), token_count)
+        submission: Submission = Submission(context.message.id, user.id, model, prompt, '###'.join(responses), token_count)
         # create the database
         self._database.create(submission)
         # insert the submission

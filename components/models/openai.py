@@ -9,9 +9,10 @@ from discord import AudioSource
 
 class Submission(Storable):
 
-    def __init__(self, id: int, user_id: int, prompt: str, response: str, token_count: int) -> None:
+    def __init__(self, id: int, user_id: int, model: str, prompt: str, response: str, token_count: int) -> None:
         self._id: int = id
         self._user_id: int = user_id
+        self._model: str = model
         self._prompt: str = prompt
         self._response: str = response
         self._token_count: int = token_count
@@ -23,6 +24,10 @@ class Submission(Storable):
     @property
     def user_id(self) -> int:
         return self._user_id
+
+    @property
+    def model(self) -> str:
+        return self._model
 
     @property
     def prompt(self) -> str:
@@ -48,6 +53,8 @@ class Submission(Storable):
         t_builder.addColumn(c_builder.setName('ID').setType('INTEGER').isPrimary().isUnique().column())
         # create user ID column
         t_builder.addColumn(c_builder.setName('UserID').setType('INTEGER').column())
+        # create model column
+        t_builder.addColumn(c_builder.setName('Model').setType('TEXT').column())
         # create prompt column
         t_builder.addColumn(c_builder.setName('Prompt').setType('TEXT').column())
         # create response column
@@ -62,7 +69,7 @@ class Submission(Storable):
 
     def __values__(self) -> Tuple[Any, ...]:
         # create a tuple with the corresponding values
-        value: Tuple[Any, ...] = (self.id, self.user_id, self.prompt, self.response, self.token_count)
+        value: Tuple[Any, ...] = (self.id, self.user_id, self.model, self.prompt, self.response, self.token_count)
         # return the tuple
         return value
 
@@ -87,19 +94,17 @@ class Submission(Storable):
         
     @classmethod
     def __from_row__(cls: Type[TStorable], row: Row) -> TStorable:
-        # Get ID value from the row
+        # get ID value from the row
         id: int = row['ID']
-        # Get UserID value from the row
+        # get UserID value from the row
         user_id: int = row['UserID']
-        # Get VideoID value from the row
-        video_id: str = row['VideoID']
-        # Get URL value from the row
-        url: str = row['URL']
-        # Get Title value from the row
-        title: str = row['Title']
-        # Get Channel value from the row
-        channel: str = row['Channel']
-        # Get thumbnail value from the row
-        thumbnail: str = row['Thumbnail']
-        # return the Metadata
-        return Submission(id, user_id, video_id, url, title, channel, thumbnail)
+        # get Model value from the row
+        model: str = row['Model']
+        # get Prompt value from the row
+        prompt: str = row['Prompt']
+        # get Response value from the row
+        response: str = row['Response']
+        # get TokenCount value from the row
+        token_count: int = row['TokenCount']
+        # return the Submission
+        return Submission(id, user_id, model, prompt, response, token_count)
