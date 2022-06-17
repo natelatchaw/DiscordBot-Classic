@@ -26,6 +26,14 @@ The maximum amount of characters
 permitted in a Discord message
 """
 
+# define model costs
+MODEL_COSTS: Dict[str, float] = {
+    'text-davinci-002': 0.0600 / 1000,
+    'text-curie-001':   0.0060 / 1000,
+    'text-babbage-001': 0.0012 / 1000,
+    'text-ada-001':     0.0008 / 1000,
+}
+
 class OpenAI():
 
     @property
@@ -137,13 +145,19 @@ class OpenAI():
                 # send the message and set the message reference to the sent message
                 message = await message.reply(f'{block_tag}\n{segment}\n{block_tag}')
 
-    async def __get_tokens__(self, content: str) -> int:
-        # split the provided string by whitespace characters
-        segments: List[str] = re.split(r"[\s]+", content)
+    async def __get_tokens__(self, submission: Submission) -> int:
+        # split the prompt by whitespace characters
+        prompt_segments: List[str] = re.split(r"[\s]+", submission.prompt)
         # get a token count for each word
-        token_counts: List[int] = [ceil(len(segment) / 4) for segment in segments]
+        prompt_token_counts: List[int] = [ceil(len(prompt_segment) / 4) for prompt_segment in prompt_segments]
+
+        # split the response by whitespace characters
+        response_segments: List[str] = re.split(r"[\s]+", submission.prompt)
+        # get a token count for each word
+        response_token_counts: List[int] = [ceil(len(response_segment) / 4) for response_segment in response_segments]
+
         # return the sum of token counts
-        return sum(token_counts)
+        return sum(prompt_token_counts) + sum(response_token_counts)
 
     async def __get_cost__(self, submission: Submission, costs: Dict[str, float]) -> float:
         try:
@@ -159,24 +173,12 @@ class OpenAI():
 
 
     async def cost(self, context: Context) -> None:
-        try:
-            # define model costs
-            model_costs: Dict[str, float] = {
-                'text-davinci-002': 0.0600 / 1000,
-                'text-curie-001':   0.0060 / 1000,
-                'text-babbage-001': 0.0012 / 1000,
-                'text-ada-001':     0.0008 / 1000,
-            }
-            # load all submissions
-            submissions: List[Submission] = await self.__load__(context)
-            # get the message's author
-            user: Union[User, Member] = context.message.author
-            # get all submissions by the user
-            submissions = [submission for submission in submissions if submission.user_id == user.id]
-        except Exception as error:
-            log.error(''.join(traceback.format_tb(error.__traceback__)))
-            raise
-
+        # load all submissions
+        submissions: List[Submission] = await self.__load__(context)
+        # get the message's author
+        user: Union[User, Member] = context.message.author
+        # get all submissions by the user
+        submissions = [submission for submission in submissions if submission.user_id == user.id]
 
         # initialize a dictionary
         per_model: Dict[str, List[Submission]] = dict()
@@ -198,7 +200,7 @@ class OpenAI():
         # for each entry in per_model
         for model, model_submissions in per_model.items():
             # calculate the cost for each submission
-            costs: List[float] = [await self.__get_cost__(submission, model_costs) for submission in model_submissions]
+            costs: List[float] = [await self.__get_cost__(submission, MODEL_COSTS) for submission in model_submissions]
             # add the cost data to the embed
             embed.add_field(name=model, value=f'${sum(costs):0.2f} ({len(costs)} submission{"s" if len(costs) != 1 else ""})')
 
