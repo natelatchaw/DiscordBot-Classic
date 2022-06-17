@@ -234,10 +234,10 @@ class OpenAI():
 
         Parameters:
         - a:
-            Adds 'a <parameter_value>' to the query (e.g., `write -a story).
+            Adds 'a <parameter_value>' to the query (e.g., write -a story).
             Can be used in conjuntion with (before) 'about'.
         - about:
-            Adds 'about <parameter_value>' to the query (e.g., `write -about the one time...).
+            Adds 'about <parameter_value>' to the query (e.g., write -about the one time...).
             Can be used in conjuntion with (after) 'a'.
         - model:
             The ID of the model to use. See https://beta.openai.com/docs/models/gpt-3 for details.
