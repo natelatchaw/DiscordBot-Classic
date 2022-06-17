@@ -133,13 +133,15 @@ class OpenAI():
         # send the responses
         await self.__print__(context, responses=responses)
 
-    async def write(self, context: Context, *, about: str, model: str = 'text-davinci-002', tokens: Union[str, int] = 128) -> None:
+    async def write(self, context: Context, *, a: Optional[str] = None, about: Optional[str] = None, model: str = 'text-davinci-002', tokens: Union[str, int] = 128) -> None:
         # initialize a list for content strings
         content: List[str] = list()
         # seed the prompt with the greentext prompt
-        content.append('write about')
+        content.append('write')
         # append the value
-        content.append(about)
+        if a: content.append(f'a {a}')
+        # append the value
+        if about: content.append(f'about {about}')
         # join the content by spaces
         prompt: str = ' '.join(content)
         # send the prompt
