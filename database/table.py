@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from column import Column
-
+from database.column import Column
 
 class Table:
 

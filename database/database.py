@@ -5,7 +5,7 @@ from sqlite3 import Connection, Row
 from typing import List, Type
 
 from database.storable import TStorable
-from table import Table
+from database.table import Table
 
 
 class Database():
