@@ -1,14 +1,16 @@
+from collections import defaultdict
 import logging
 import re
 import textwrap
 from logging import Logger
 from math import ceil
 from pathlib import Path
-from typing import List, Literal, Optional, Union
+import traceback
+from typing import DefaultDict, Dict, List, Literal, Optional, Union
 
 from context import Context
 from database.database import Database
-from discord import Client, Member, Message, User
+from discord import Client, Embed, Member, Message, User
 from router.configuration import Section
 from settings.settings import Settings
 
@@ -94,18 +96,30 @@ class OpenAI():
         choices: List[OpenAIObject] = completion.choices
         # get the list of text responses
         responses: List[str] = [choice.text for choice in choices]
-        
+
         # calculate the total token count
         token_count: int = sum([await self.__get_tokens__(response) for response in responses])
         # create submission object
         submission: Submission = Submission(context.message.id, user.id, model, prompt, '###'.join(responses), token_count)
-        # create the database
-        self._database.create(submission)
-        # insert the submission
-        self._database.insert(submission)
+        #
+        await self.__store__(context, submission=submission)
 
         # return the responses
         return responses
+
+    async def __store__(self, context: Context, *, submission: Submission) -> None:
+        # create the database
+        self._database.create(Submission)
+        # insert the submission
+        self._database.insert(submission)
+
+    async def __load__(self, context: Context) -> List[Submission]:
+        # create the database
+        self._database.create(Submission)
+        # get all submissions
+        submissions: List[Submission] = [Submission.__from_row__(row) for row in self._database.select(Submission)]
+        # return submissions
+        return submissions
     
     async def __print__(self, context: Context, *, responses: List[str]):
         # define the block tag for code block messages
@@ -130,6 +144,65 @@ class OpenAI():
         token_counts: List[int] = [ceil(len(segment) / 4) for segment in segments]
         # return the sum of token counts
         return sum(token_counts)
+
+    async def __get_cost__(self, submission: Submission, costs: Dict[str, float]) -> float:
+        try:
+            # retrieve the cost per token for the model used by the submission
+            cost_per_token: float = costs[submission.model]
+            # calculate the total cost
+            total_cost: float = submission.token_count * cost_per_token
+            # return the cost
+            return total_cost
+        except KeyError as error:
+            log.warning(f'No cost defined for model {error}')
+            return float(0)
+
+
+    async def cost(self, context: Context) -> None:
+        try:
+            # define model costs
+            model_costs: Dict[str, float] = {
+                'text-davinci-002': 0.0600 / 1000,
+                'text-curie-001':   0.0060 / 1000,
+                'text-babbage-001': 0.0012 / 1000,
+                'text-ada-001':     0.0008 / 1000,
+            }
+            # load all submissions
+            submissions: List[Submission] = await self.__load__(context)
+            # get the message's author
+            user: Union[User, Member] = context.message.author
+            # get all submissions by the user
+            submissions = [submission for submission in submissions if submission.user_id == user.id]
+        except Exception as error:
+            log.error(''.join(traceback.format_tb(error.__traceback__)))
+            raise
+
+
+        # initialize a dictionary
+        per_model: Dict[str, List[Submission]] = dict()
+        # for each submission
+        for submission in submissions:
+            # if the per_model dictionary does not have the model as a key
+            if not per_model.get(submission.model):
+                # add the model as a key with a list
+                per_model[submission.model] = list()
+            # append the submission to the list for the submission's model
+            per_model[submission.model].append(submission)
+
+        embed: Embed = Embed()
+        embed.title = 'OpenAI Usage'
+        embed.set_author(name=user.name, icon_url=user.avatar_url)
+
+        print(len(per_model))
+
+        # for each entry in per_model
+        for model, model_submissions in per_model.items():
+            # calculate the cost for each submission
+            costs: List[float] = [await self.__get_cost__(submission, model_costs) for submission in model_submissions]
+            # add the cost data to the embed
+            embed.add_field(name=model, value=f'${sum(costs):0.2f} ({len(costs)} submission{"s" if len(costs) != 1 else ""})')
+
+        await context.message.reply(embed=embed)
 
     async def prompt(self, context: Context, *, content: str, model: str = 'text-davinci-002', tokens: Union[str, int] = 128) -> None:
         # send the prompt

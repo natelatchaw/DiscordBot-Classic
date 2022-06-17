@@ -34,14 +34,12 @@ class Database():
     def select(self, type: Type[TStorable]) -> List[Row]:
         # get the table instance
         table: Table = type.__table__()
-        # execute the table's select statement
-        self._connection.cursor().execute(table.__select__())
-        # fetch all results
-        results: List[Row] = self._connection.cursor().fetchall()
+        # execute the table's select statement and fetch all results
+        results: List[Row] = self._connection.cursor().execute(table.__select__()).fetchall()
         # return results
         return results
 
-    def insert(self, type: Type[TStorable]) -> None:
+    def insert(self, type: TStorable) -> None:
         # get the table instance
         table: Table = type.__table__()
         # execute the table's insert statement with parameter injection

@@ -38,9 +38,10 @@ class Submission(Storable):
         return self._response
     
     @property
-    def token_count(self) -> str:
+    def token_count(self) -> int:
         return self._token_count
 
+    @classmethod
     def __table__(self) -> Table:
         # create a table builder
         t_builder: TableBuilder = TableBuilder()
@@ -72,25 +73,6 @@ class Submission(Storable):
         value: Tuple[Any, ...] = (self.id, self.user_id, self.model, self.prompt, self.response, self.token_count)
         # return the tuple
         return value
-
-    @classmethod
-    def __from_dict__(cls, dict: Dict[str, Any], snowflake: int, user_id: int):
-        raise NotImplementedError()
-        id: int = snowflake
-        if not isinstance(id, int): raise TypeError('snowflake')
-        user_id: int = user_id
-        if not isinstance(user_id, int): raise TypeError('user_id')
-        video_id: str = dict['id']
-        if not isinstance(video_id, str): raise KeyError('id')        
-        title: str = dict['title']
-        if not isinstance(title, str): raise KeyError('title')        
-        channel: str = dict['channel']
-        if not isinstance(channel, str): raise KeyError('channel')        
-        thumbnail: str = dict['thumbnail']
-        if not isinstance(channel, str): raise KeyError('thumbnail')
-        url: str = dict['url']
-        if not isinstance(url, str): raise KeyError('url')        
-        return Metadata(id, user_id, video_id, title, channel, thumbnail, url)
         
     @classmethod
     def __from_row__(cls: Type[TStorable], row: Row) -> TStorable:
