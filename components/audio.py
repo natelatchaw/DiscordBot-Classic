@@ -94,7 +94,7 @@ class Audio():
         # set the current metadata
         self._current: Optional[Metadata] = metadata
         # instantiate activity
-        activity: Activity = Streaming(name=metadata.title)
+        activity: Activity = Streaming(name=metadata.title, url=metadata.url)
         # change the client's presence
         await self._client.change_presence(activity=activity)
 
