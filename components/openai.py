@@ -1,5 +1,7 @@
+import logging
 import re
 import textwrap
+from logging import Logger
 from math import ceil
 from pathlib import Path
 from typing import List, Literal, Optional, Union
@@ -13,6 +15,8 @@ from settings.settings import Settings
 import openai
 from components.models.openai import Submission
 from openai.openai_object import OpenAIObject
+
+log: Logger = logging.getLogger(__name__)
 
 MAX_MESSAGE_SIZE: Literal[2000] = 2000
 """
