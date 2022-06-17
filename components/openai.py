@@ -112,9 +112,7 @@ class OpenAI():
         responses: List[str] = [choice.text for choice in choices]
 
         # create submission object
-        submission: Submission = Submission(context.message.id, user.id, model, prompt, '###'.join(responses), token_count)
-        # calculate the total token count
-        token_count: int = sum([await self.__get_tokens__(submission) for response in responses])
+        submission: Submission = Submission(context.message.id, user.id, model, prompt, '\n'.join(responses))
         # store the submission
         await self.__store__(context, submission=submission)
 
@@ -150,20 +148,6 @@ class OpenAI():
             for segment in segments:
                 # send the message and set the message reference to the sent message
                 message = await message.reply(f'{block_tag}\n{segment}\n{block_tag}')
-
-    async def __get_tokens__(self, submission: Submission) -> int:
-        # split the prompt by whitespace characters
-        prompt_segments: List[str] = re.split(r"[\s]+", submission.prompt)
-        # get a token count for each word
-        prompt_token_counts: List[int] = [ceil(len(prompt_segment) / 4) for prompt_segment in prompt_segments]
-
-        # split the response by whitespace characters
-        response_segments: List[str] = re.split(r"[\s]+", submission.prompt)
-        # get a token count for each word
-        response_token_counts: List[int] = [ceil(len(response_segment) / 4) for response_segment in response_segments]
-
-        # return the sum of token counts
-        return sum(prompt_token_counts) + sum(response_token_counts)
 
     async def __get_cost__(self, submission: Submission, costs: Dict[str, float]) -> float:
         try:

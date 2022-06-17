@@ -1,21 +1,36 @@
+import re
+from math import ceil
 from sqlite3 import Row
-from typing import Any, Dict, Tuple, Type
+from typing import Any, List, Tuple, Type
 
 from database.column import ColumnBuilder
 from database.storable import Storable, TStorable
 from database.table import Table, TableBuilder
-from discord import AudioSource
 
 
 class Submission(Storable):
 
-    def __init__(self, id: int, user_id: int, model: str, prompt: str, response: str, token_count: int) -> None:
+    def __init__(self, id: int, user_id: int, model: str, prompt: str, response: str) -> None:
         self._id: int = id
         self._user_id: int = user_id
         self._model: str = model
         self._prompt: str = prompt
         self._response: str = response
-        self._token_count: int = token_count
+        self._token_count: int = self.__get_tokens__()
+
+    def __get_tokens__(self) -> int:
+        # split the prompt by whitespace characters
+        prompt_segments: List[str] = re.split(r"[\s]+", self._prompt)
+        # get a token count for each word
+        prompt_token_counts: List[int] = [ceil(len(prompt_segment) / 4) for prompt_segment in prompt_segments]
+
+        # split the response by whitespace characters
+        response_segments: List[str] = re.split(r"[\s]+", self._prompt)
+        # get a token count for each word
+        response_token_counts: List[int] = [ceil(len(response_segment) / 4) for response_segment in response_segments]
+
+        # return the sum of token counts
+        return sum(prompt_token_counts) + sum(response_token_counts)
 
     @property
     def id(self) -> int:
