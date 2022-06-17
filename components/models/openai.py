@@ -104,4 +104,4 @@ class Submission(Storable):
         # get TokenCount value from the row
         token_count: int = row['TokenCount']
         # return the Submission
-        return Submission(id, user_id, model, prompt, response, token_count)
+        return Submission(id, user_id, model, prompt, response)
