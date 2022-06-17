@@ -1,12 +1,14 @@
-from collections import defaultdict
+"""
+Contains components related to OpenAI functionality.
+"""
+
 import logging
 import re
 import textwrap
 from logging import Logger
 from math import ceil
 from pathlib import Path
-import traceback
-from typing import DefaultDict, Dict, List, Literal, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 from context import Context
 from database.database import Database
@@ -35,6 +37,10 @@ MODEL_COSTS: Dict[str, float] = {
 }
 
 class OpenAI():
+    """
+    A collection of commands used to prompt the OpenAI GPT-3 AI models.
+    AI model usage is tracked and can be calculated via the 'cost' command.
+    """
 
     @property
     def key(self) -> str:
@@ -173,46 +179,87 @@ class OpenAI():
 
 
     async def cost(self, context: Context) -> None:
+        """
+        Calculates an estimate of the user's OpenAI usage.
+        Mention a user (or multiple users) to calculate their usage instead.
+        """
+
         # load all submissions
         submissions: List[Submission] = await self.__load__(context)
         # get the message's author
-        user: Union[User, Member] = context.message.author
-        # get all submissions by the user
-        submissions = [submission for submission in submissions if submission.user_id == user.id]
+        author: Union[User, Member] = context.message.author
+        # get the message's mentioned users
+        mentions: List[Union[User, Member]] = context.message.mentions
+        # get the target users
+        users: List[Union[User, Member]] = mentions if (len(mentions) > 0) else [context.message.author]
 
-        # initialize a dictionary
-        per_model: Dict[str, List[Submission]] = dict()
-        # for each submission
-        for submission in submissions:
-            # if the per_model dictionary does not have the model as a key
-            if not per_model.get(submission.model):
-                # add the model as a key with a list
-                per_model[submission.model] = list()
-            # append the submission to the list for the submission's model
-            per_model[submission.model].append(submission)
+        # for each user
+        for user in users:
+            # get all submissions by the user
+            submissions = [submission for submission in submissions if submission.user_id == user.id]
 
-        embed: Embed = Embed()
-        embed.title = 'OpenAI Usage'
-        embed.set_author(name=user.name, icon_url=user.avatar_url)
+            # initialize a dictionary
+            per_model: Dict[str, List[Submission]] = dict()
+            # for each submission
+            for submission in submissions:
+                # if the per_model dictionary does not have the model as a key
+                if not per_model.get(submission.model):
+                    # add the model as a key with a list
+                    per_model[submission.model] = list()
+                # append the submission to the list for the submission's model
+                per_model[submission.model].append(submission)
 
-        print(len(per_model))
+            embed: Embed = Embed()
+            embed.title = 'OpenAI Usage'
+            embed.description = f'{len(submissions)} Total Submission{"s" if len(submissions) != 1 else ""}'
+            embed.set_author(name=user.name, icon_url=user.avatar_url)
 
-        # for each entry in per_model
-        for model, model_submissions in per_model.items():
-            # calculate the cost for each submission
-            costs: List[float] = [await self.__get_cost__(submission, MODEL_COSTS) for submission in model_submissions]
-            # add the cost data to the embed
-            embed.add_field(name=model, value=f'${sum(costs):0.2f} ({len(costs)} submission{"s" if len(costs) != 1 else ""})')
+            print(len(per_model))
 
-        await context.message.reply(embed=embed)
+            # for each entry in per_model
+            for model, model_submissions in per_model.items():
+                # calculate the cost for each submission
+                costs: List[float] = [await self.__get_cost__(submission, MODEL_COSTS) for submission in model_submissions]
+                # add the cost data to the embed
+                embed.add_field(name=model, value=f'${sum(costs):0.2f} ({len(costs)} submission{"s" if len(costs) != 1 else ""})')
+
+            await context.message.reply(embed=embed)
 
     async def prompt(self, context: Context, *, content: str, model: str = 'text-davinci-002', tokens: Union[str, int] = 128) -> None:
+        """
+        Provides a prompt to the designated AI model 
+        and returns the response.
+
+        Parameters:
+        - content:
+            The text prompt content to send to the AI model.
+        - model:
+            The ID of the model to use. See https://beta.openai.com/docs/models/gpt-3 for details.
+        - tokens:
+            The maximum number of tokens to allow the AI model to return. Used to limit token usage.
+        """
         # send the prompt
         responses: List[str] = await self.__send__(context, prompt=content, model=model, tokens=tokens, echo=False)
         # send the responses
         await self.__print__(context, responses=responses)
 
     async def write(self, context: Context, *, a: Optional[str] = None, about: Optional[str] = None, model: str = 'text-davinci-002', tokens: Union[str, int] = 128) -> None:
+        """
+        A shorthand command for 'prompt'.
+        Used to integrate command parameters as a part of the query.
+
+        Parameters:
+        - a:
+            Adds 'a <parameter_value>' to the query (e.g., `write -a story).
+            Can be used in conjuntion with (before) 'about'.
+        - about:
+            Adds 'about <parameter_value>' to the query (e.g., `write -about the one time...).
+            Can be used in conjuntion with (after) 'a'.
+        - model:
+            The ID of the model to use. See https://beta.openai.com/docs/models/gpt-3 for details.
+        - tokens:
+            The maximum number of tokens to allow the AI model to return. Used to limit token usage.
+        """
         # initialize a list for content strings
         content: List[str] = list()
         # seed the prompt with the greentext prompt
@@ -229,6 +276,17 @@ class OpenAI():
         await self.__print__(context, responses=responses)
 
     async def greentext(self, context: Context, *, be_me: Optional[str] = None, model: str = 'text-davinci-002', tokens: Union[str, int] = 256) -> None:
+        """
+        Generates a 4chan-style greentext.
+
+        Parameters:
+        - be_me:
+            Used to provide a second line of seed greentext after the initial '>be me' line.
+        - model:
+            The ID of the model to use. See https://beta.openai.com/docs/models/gpt-3 for details.
+        - tokens:
+            The maximum number of tokens to allow the AI model to return. Used to limit token usage.
+        """
         # initialize a list for content strings
         content: List[str] = list()
         # seed the prompt with the greentext prompt
@@ -247,4 +305,3 @@ class OpenAI():
         responses: List[str] = await self.__send__(context, prompt=prompt, model=model, tokens=tokens, echo=True)
         # send the responses
         await self.__print__(context, responses=responses)
-
