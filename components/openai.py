@@ -111,11 +111,11 @@ class OpenAI():
         # get the list of text responses
         responses: List[str] = [choice.text for choice in choices]
 
-        # calculate the total token count
-        token_count: int = sum([await self.__get_tokens__(response) for response in responses])
         # create submission object
         submission: Submission = Submission(context.message.id, user.id, model, prompt, '###'.join(responses), token_count)
-        #
+        # calculate the total token count
+        token_count: int = sum([await self.__get_tokens__(submission) for response in responses])
+        # store the submission
         await self.__store__(context, submission=submission)
 
         # return the responses
