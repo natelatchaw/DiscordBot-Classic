@@ -153,7 +153,7 @@ class Audio():
                 self._connection.clear()
     
     
-    async def __queue__(self, context: Context, *, url: str = None, search: str = None, speed: str = None) -> Request:
+    async def __queue__(self, context: Context, *, url: Optional[str] = None, search: Optional[str] = None, speed: Optional[str] = None) -> Request:
         """
         Add source media to the media queue.
 
@@ -282,7 +282,7 @@ class Audio():
             self._connection.clear()
 
 
-    async def play(self, context: Context, *, url: str = None, search: str = None, speed: str = None):
+    async def play(self, context: Context, *, url: Optional[str] = None, search: Optional[str] = None, speed: Optional[str] = None):
         """
         Plays audio in a voice channel.
         Supports YouTube URLs via the url parameter
@@ -366,7 +366,7 @@ class Audio():
             return
 
 
-    async def nightcore(self, context: Context, *, url: str = None, search: str = None, channel: str = None, speed: str = '1.25'):
+    async def nightcore(self, context: Context, *, url: Optional[str] = None, search: Optional[str] = None, speed: Optional[str] = '1.25'):
         """
         Plays audio in a voice channel.
         Supports YouTube URLs via the url parameter,
@@ -378,7 +378,7 @@ class Audio():
             - search: Search terms to query YouTube for a source video.
             - speed: A playback speed modifier between 0.5 and 2.0
         """
-        await self.play(context, url=url, search=search, channel=channel, speed=speed)
+        await self.play(context, url=url, search=search, speed=speed)
 
     async def top(self, context: Context):
         """
