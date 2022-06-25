@@ -106,9 +106,6 @@ class Generation():
 
 
     async def __get_target__(self, context: Context) -> Optional[Union[User, Member, ClientUser, ChannelUser]]:
-
-        message: Message = await context.message.reply('Compiling...')
-
         guild: Guild = context.message.guild
         channel: TextChannel = context.message.channel
         user: Optional[Union[User, Member, ClientUser, ChannelUser]] = None
