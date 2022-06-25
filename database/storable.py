@@ -10,6 +10,7 @@ TStorable = TypeVar('TStorable', bound='Storable')
 
 class Storable(Protocol):
     
+    @classmethod
     @abstractmethod
     def __table__(self) -> Table:
         raise NotImplementedError()

@@ -46,6 +46,7 @@ class Metadata(Storable):
     def url(self) -> str:
         return self._url
 
+    @classmethod
     def __table__(self) -> Table:
         # create a table builder
         t_builder: TableBuilder = TableBuilder()

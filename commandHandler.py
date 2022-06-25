@@ -61,6 +61,8 @@ class CommandHandler(Handler):
         try:
             # ratelimit check the message if available
             if self._limiter: self._limiter.check(message)
+            # trigger typing indicator
+            await context.message.channel.trigger_typing()
             # call super to finish processing the message
             await super().process(command_message, args=args)
         except Exception as error:

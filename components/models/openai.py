@@ -1,21 +1,36 @@
+import re
+from math import ceil
 from sqlite3 import Row
-from typing import Any, Dict, Tuple, Type
+from typing import Any, List, Tuple, Type
 
 from database.column import ColumnBuilder
 from database.storable import Storable, TStorable
 from database.table import Table, TableBuilder
-from discord import AudioSource
 
 
 class Submission(Storable):
 
-    def __init__(self, id: int, user_id: int, model: str, prompt: str, response: str, token_count: int) -> None:
+    def __init__(self, id: int, user_id: int, model: str, prompt: str, response: str) -> None:
         self._id: int = id
         self._user_id: int = user_id
         self._model: str = model
         self._prompt: str = prompt
         self._response: str = response
-        self._token_count: int = token_count
+        self._token_count: int = self.__get_tokens__()
+
+    def __get_tokens__(self) -> int:
+        # split the prompt by whitespace characters
+        prompt_segments: List[str] = re.split(r"[\s]+", self._prompt)
+        # get a token count for each word
+        prompt_token_counts: List[int] = [ceil(len(prompt_segment) / 4) for prompt_segment in prompt_segments]
+
+        # split the response by whitespace characters
+        response_segments: List[str] = re.split(r"[\s]+", self._prompt)
+        # get a token count for each word
+        response_token_counts: List[int] = [ceil(len(response_segment) / 4) for response_segment in response_segments]
+
+        # return the sum of token counts
+        return sum(prompt_token_counts) + sum(response_token_counts)
 
     @property
     def id(self) -> int:
@@ -38,9 +53,10 @@ class Submission(Storable):
         return self._response
     
     @property
-    def token_count(self) -> str:
+    def token_count(self) -> int:
         return self._token_count
 
+    @classmethod
     def __table__(self) -> Table:
         # create a table builder
         t_builder: TableBuilder = TableBuilder()
@@ -72,25 +88,6 @@ class Submission(Storable):
         value: Tuple[Any, ...] = (self.id, self.user_id, self.model, self.prompt, self.response, self.token_count)
         # return the tuple
         return value
-
-    @classmethod
-    def __from_dict__(cls, dict: Dict[str, Any], snowflake: int, user_id: int):
-        raise NotImplementedError()
-        id: int = snowflake
-        if not isinstance(id, int): raise TypeError('snowflake')
-        user_id: int = user_id
-        if not isinstance(user_id, int): raise TypeError('user_id')
-        video_id: str = dict['id']
-        if not isinstance(video_id, str): raise KeyError('id')        
-        title: str = dict['title']
-        if not isinstance(title, str): raise KeyError('title')        
-        channel: str = dict['channel']
-        if not isinstance(channel, str): raise KeyError('channel')        
-        thumbnail: str = dict['thumbnail']
-        if not isinstance(channel, str): raise KeyError('thumbnail')
-        url: str = dict['url']
-        if not isinstance(url, str): raise KeyError('url')        
-        return Metadata(id, user_id, video_id, title, channel, thumbnail, url)
         
     @classmethod
     def __from_row__(cls: Type[TStorable], row: Row) -> TStorable:
@@ -107,4 +104,4 @@ class Submission(Storable):
         # get TokenCount value from the row
         token_count: int = row['TokenCount']
         # return the Submission
-        return Submission(id, user_id, model, prompt, response, token_count)
+        return Submission(id, user_id, model, prompt, response)

@@ -34,9 +34,6 @@ class RateLimiter():
             self._history[author.id] = deque(maxlen=count)
 
         queue: deque = self._history[author.id]
-        
-        log.warn(f'Message Queue: {len(queue)}/{queue.maxlen}')
-        log.warn(queue)
 
         if len(queue) < queue.maxlen:
             # append the current message's timestamp to the deque
