@@ -101,7 +101,7 @@ class Generation():
         directory = directory.resolve()
         if not directory.exists(): directory.mkdir(parents=True, exist_ok=True)
         file: Path = directory.joinpath(str(user.id))
-        if not file.exists(): raise ValueError(f'No model found for {user.name}! Run \'compile\' to compile one.')
+        if not file.exists(): raise ValueError(f'No model found for {user.mention}\nRun \'compile\' to compile one.')
         return file.read_text()
 
 
