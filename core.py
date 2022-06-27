@@ -24,26 +24,25 @@ class Core(Client):
 
     def __init__(self) -> None:
         self._timestamp: datetime = datetime.now(tz=timezone.utc)
-        self._settings: Settings = Settings()
-        self._limiter: RateLimiter = RateLimiter(self._settings)
-        self._handler: CommandHandler = CommandHandler()
-        self._loggers: Dict[int, Logger] = dict()
         super().__init__(intents=Intents.all())
 
     async def on_ready(self):
         self._archive: ClientArchive = ClientArchive(Path('./archive'), self)
+        self._settings: Settings = Settings()
+        self._limiter: RateLimiter = RateLimiter(self._settings)
+        self._handler: CommandHandler = CommandHandler()
+        self._loggers: Dict[int, Logger] = dict()
         await self.__on_ready__()
-
-    async def on_guild_channel_create(self, channel: GuildChannel):
-        print('creating channel in archive....')
-        self._archive[channel.guild.id].add(channel)
-    
-    async def on_guild_channel_delete(self, channel: GuildChannel):
-        print('removing channel in archive....')
-        self._archive[channel.guild.id].remove(channel)
 
     async def on_message(self, message: Message):
         await self.__on_message__(message)
+
+    async def on_guild_channel_create(self, channel: GuildChannel):
+        self._archive[channel.guild.id].add(channel)
+    
+    async def on_guild_channel_delete(self, channel: GuildChannel):
+        self._archive[channel.guild.id].remove(channel)
+
 
     ################################################################################
     #                                                                              #
@@ -54,17 +53,13 @@ class Core(Client):
 
     async def __on_ready__(self):
         try:
-            if not self._settings.client.data.components:
-                raise HandlerError('No components directory provided.')
+            if not self._settings.client.data.components: raise HandlerError('No components directory provided.')
             self._handler.load(self._settings.client.data.components, extension='py', client=self, settings=self._settings)
             self._handler.addLimiter(self._limiter)
         except HandlerError as error:
             log.warning(error)
 
         try:
-            archive_path: Path = Path('./archive')
-            #for guild in self.guilds:
-                #self._archive.load(archive_path, guild)
             await self._archive.fetch()
         except Exception:
             raise
@@ -84,7 +79,7 @@ class Core(Client):
         if message.author.id == self.user.id:
             return
         try:
-            prefix: Optional[str] = self._settings.for_guild(message.guild).ux.prefix
+            prefix: Optional[str] = self._settings.for_guild(message.guild).ux.prefix if message.guild else None
             context: Context = Context(
                 self,
                 message,

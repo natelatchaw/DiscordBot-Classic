@@ -22,9 +22,8 @@ class RateLimiter():
         Raises an error if message fails to meet policy.
         '''
 
-        rate: Optional[float] = self._settings.for_guild(message.guild).limiting.rate
-        count: Optional[int] = self._settings.for_guild(message.guild).limiting.count
-
+        rate: Optional[float] = self._settings.for_guild(message.guild).limiting.rate if message.guild else None
+        count: Optional[int] = self._settings.for_guild(message.guild).limiting.count if message.guild else None
         if not rate or not count: return
 
         author: Union[User, Member] = message.author
@@ -35,7 +34,7 @@ class RateLimiter():
 
         queue: deque = self._history[author.id]
 
-        if len(queue) < queue.maxlen:
+        if queue.maxlen and len(queue) < queue.maxlen:
             # append the current message's timestamp to the deque
             queue.append(timestamp)
             return
@@ -72,6 +71,6 @@ class RateLimitActiveException(RateLimiterError):
         super().__init__(message, exception)
 
 class QueueNotFull(RateLimiterError):
-    def __init__(self, message: str, exception: Optional[Exception] = None):
+    def __init__(self, exception: Optional[Exception] = None):
         message: str = 'Queue is not full. '
         super().__init__(message, exception)

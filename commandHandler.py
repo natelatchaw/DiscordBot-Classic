@@ -73,7 +73,8 @@ class CommandHandler(Handler):
             embed.set_author(name=context.client.user.name, icon_url=str(context.client.user.avatar_url))
             await message.reply(embed=embed)
 
-            if context.settings.for_guild(context.message.guild).ux.verbose: await self.__print_traceback__(context, error)
+            if context.message.guild and context.settings.for_guild(context.message.guild).ux.verbose:
+                await self.__print_traceback__(context, error)
 
     async def __print_traceback__(self, context: Context, error: Exception) -> None:
         """
