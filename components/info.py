@@ -1,3 +1,4 @@
+import inspect
 import os
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
@@ -80,7 +81,7 @@ class Info:
 
         else:
             embed.title = "Help"
-            embed.description = self.__doc__
+            embed.description = inspect.cleandoc(self.__doc__)
             for package in context.packages.values():
                 embed.add_field(name=package._reference.name, value=package.doc, inline=False)
             embed.timestamp = datetime.now(tz=timezone.utc)
