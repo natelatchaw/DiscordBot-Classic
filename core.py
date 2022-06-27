@@ -55,9 +55,9 @@ class Core(Client):
         if not isinstance(message, Message):
             return
         # log the message
-        self.log_message(message)
+        self.__log_message__(message)
         # archive the message
-        self.archive_message(message)
+        self.__archive_message__(message)
         # if the message author is the bot
         if message.author.id == self.user.id:
             return
@@ -78,19 +78,25 @@ class Core(Client):
         except HandlerError as error:
             log.error(error)
 
-    def archive_message(self, message: Message):
+    ################################################################################
+    #                                                                              #
+    #                                                                              #
+    #                                                                              #
+    ################################################################################
+
+    def __archive_message__(self, message: Message):
         self._archive.write(message)
 
-    def log_message(self, message: Message):
+    def __log_message__(self, message: Message):
         # get the message author
         user: Union[User, Member] = message.author
         # get a logger for the channel
-        logger: Optional[Logger] = self.get_logger(message.channel)
+        logger: Optional[Logger] = self.__get_logger__(message.channel)
         # if a logger was found, log the message
         if logger:
             logger.info("%s#%s -> %s", user.name, user.discriminator, message.clean_content)
 
-    def get_logger(self, channel: Union[TextChannel, DMChannel, GroupChannel]) -> Optional[Logger]:
+    def __get_logger__(self, channel: Union[TextChannel, DMChannel, GroupChannel]) -> Optional[Logger]:
         logger: Optional[Logger] = None
         try:
             path: Path = Path(f"./logs/{channel.id}.log").resolve()
