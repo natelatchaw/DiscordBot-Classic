@@ -24,14 +24,14 @@ class Core(Client):
 
     def __init__(self) -> None:
         self._timestamp: datetime = datetime.now(tz=timezone.utc)
-        super().__init__(intents=Intents.all())
-
-    async def on_ready(self):
-        self._archive: ClientArchive = ClientArchive(Path('./archive'), self)
         self._settings: Settings = Settings()
         self._limiter: RateLimiter = RateLimiter(self._settings)
         self._handler: CommandHandler = CommandHandler()
         self._loggers: Dict[int, Logger] = dict()
+        super().__init__(intents=Intents.all())
+
+    async def on_ready(self):
+        self._archive: ClientArchive = ClientArchive(Path('./archive'), self)
         await self.__on_ready__()
 
     async def on_message(self, message: Message):
