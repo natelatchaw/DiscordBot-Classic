@@ -72,9 +72,9 @@ class Audio():
         # create database instance
         self._database: Database = Database(Path('./archive/audio.db'))
         # create a config section for Audio
-        self._settings['Audio'] = Section('Audio', self._settings._parser, self._settings._reference)
+        self._settings.client['Audio'] = Section('Audio', self._settings.client._parser, self._settings.client._reference)
         # create reference to Audio config section
-        self._config: Section = self._settings['Audio']
+        self._config: Section = self._settings.client['Audio']
 
     def __on_complete__(self, error: Optional[Exception]):
         """

@@ -86,9 +86,9 @@ class OpenAI():
     def __setup__(self) -> None:
         key: str = self.__class__.__name__
         # create a config section for Audio
-        self._settings[key] = Section(key, self._settings._parser, self._settings._reference)
+        self._settings.client[key] = Section(key, self._settings.client._parser, self._settings.client._reference)
         # create reference to Audio config section
-        self._config: Section = self._settings[key]
+        self._config: Section = self._settings.client[key]
         # set the api key
         openai.api_key = self.key
         # create database instance

@@ -40,8 +40,8 @@ loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
 
 settings: Settings = Settings()
 handler: Handler = Handler()
-if settings.ux.components:
-    handler.load(settings.ux.components)
+if settings.client.data.components:
+    handler.load(settings.client.data.components)
 
 
 async def await_input():

@@ -16,12 +16,12 @@ from settings.settings import Settings
 nltk.download('averaged_perceptron_tagger', quiet=True)
 
 class POSifiedText(markovify.NewlineText):
-    def word_split(self, sentence):
+    def word_split(self, sentence: str):
         words = re.split(self.word_split_pattern, sentence)
         words = [ "::".join(tag) for tag in nltk.pos_tag(words) ]
         return words
 
-    def word_join(self, words):
+    def word_join(self, words: str):
         sentence = " ".join(word.split("::")[0] for word in words)
         return sentence
 
@@ -219,7 +219,7 @@ class Generation():
         embed.description = sentence
         embed.timestamp = datetime.now(tz=timezone.utc)
         
-        if self._settings.ux.verbose:
+        if self._settings.for_guild(context.message.guild).ux.verbose:
             embed.add_field(name='attempt', value=f'{loop}/{loops}')
 
         response: Message = await channel.send(embed=embed)

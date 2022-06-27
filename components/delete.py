@@ -61,7 +61,7 @@ class Delete():
         # try to get the owner id from the config
         try:
             # get the bot owner id
-            bot_owner_id = str(context.settings.ux.owner)
+            bot_owner_id = str(context.settings.client.data.owner)
         # if an error occurred retrieving the owner id
         except ValueError:
             # set the bot owner id to None

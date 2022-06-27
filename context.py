@@ -4,7 +4,7 @@ from typing import Dict
 from discord import Client, Message
 from router.packaging import Package
 
-from providers.archiver import Archive
+from providers.clientArchive import ClientArchive
 from settings import Settings
 
 
@@ -22,7 +22,7 @@ class Context:
         return self._settings
 
     @property
-    def archive(self) -> Archive:
+    def archive(self) -> ClientArchive:
         return self._archive
 
     @property
@@ -38,13 +38,13 @@ class Context:
         client: Client,
         message: Message,
         settings: Settings,
-        archive: Archive,
+        archive: ClientArchive,
         timestamp: datetime,
         packages: Dict[str, Package],
     ):
         self._client: Client = client
         self._settings: Settings = settings
-        self._archive: Archive = archive
+        self._archive: ClientArchive = archive
         self._message: Message = message
         self._timestamp: datetime = timestamp
         self._packages: Dict[str, Package] = packages

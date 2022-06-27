@@ -9,14 +9,6 @@ log: Logger = logging.getLogger(__name__)
 
 
 class UXSettings(SettingsSection):
-    @property
-    def components(self) -> Optional[Path]:
-        key: str = "components"
-        return self.get_path(key)
-    @components.setter
-    def components(self, reference: Path) -> None:
-        key: str = "components"
-        self[key] = str(reference)
 
     @property
     def prefix(self) -> Optional[str]:
@@ -26,17 +18,6 @@ class UXSettings(SettingsSection):
     def prefix(self, value: str) -> None:
         key: str = "prefix"
         self[key] = value
-
-
-    @property
-    def owner(self) -> Optional[int]:
-        key: str = "owner"
-        return self.get_integer(key)
-    @owner.setter
-    def owner(self, value: int) -> None:
-        key: str = "owner"
-        self[key] = str(value)
-
 
     @property
     def verbose(self) -> bool:

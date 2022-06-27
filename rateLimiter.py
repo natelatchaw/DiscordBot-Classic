@@ -22,8 +22,8 @@ class RateLimiter():
         Raises an error if message fails to meet policy.
         '''
 
-        rate: Optional[float] = self._settings.limiting.rate
-        count: Optional[int] = self._settings.limiting.count
+        rate: Optional[float] = self._settings.for_guild(message.guild).limiting.rate
+        count: Optional[int] = self._settings.for_guild(message.guild).limiting.count
 
         if not rate or not count: return
 

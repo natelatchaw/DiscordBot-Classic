@@ -22,7 +22,7 @@ class Utility():
         authorized: List[int] = list()
 
         bot_owner_id: Optional[int] = None
-        try: bot_owner_id = context.settings.ux.owner
+        try: bot_owner_id = context.settings.client.data.owner
         except ValueError: pass
         if bot_owner_id: authorized.append(bot_owner_id)
         
@@ -49,11 +49,11 @@ class Utility():
 
         rate_value: Optional[float] = float(rate) if rate else None
         if rate_value:
-            context.settings.limiting.rate = rate_value
+            context.settings.for_guild(context.message.guild).limiting.rate = rate_value
         
         count_value: Optional[int] = int(count) if count else None
         if count_value:
-            context.settings.limiting.count = count_value
+            context.settings.for_guild(context.message.guild).limiting.count = count_value
 
 
     async def enable_verbose(self, context: Context):
@@ -61,16 +61,16 @@ class Utility():
         Enables the verbose configuration flag.
         """
 
-        context.settings.ux.verbose = True
-        await context.message.reply(f"Verbose mode {'enabled' if context.settings.ux.verbose else 'disabled'}")
+        context.settings.for_guild(context.message.guild).ux.verbose = True
+        await context.message.reply(f"Verbose mode {'enabled' if context.settings.for_guild(context.message.guild).ux.verbose else 'disabled'}")
 
     async def disable_verbose(self, context: Context):
         """
         Disables the verbose configuration flag.
         """
 
-        context.settings.ux.verbose = False
-        await context.message.reply(f"Verbose mode {'enabled' if context.settings.ux.verbose else 'disabled'}")
+        context.settings.for_guild(context.message.guild).verbose = False
+        await context.message.reply(f"Verbose mode {'enabled' if context.settings.for_guild(context.message.guild).ux.verbose else 'disabled'}")
 
 
     async def set_log_channel(self, *, _message: discord.Message, _settings: Settings, reset: bool=False):

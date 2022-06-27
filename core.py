@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Dict, Optional, Union
 
 import discord
+from discord.abc import GuildChannel
 from discord import (Client, DMChannel, GroupChannel, Intents, Member, Message,
                      TextChannel, User)
 from pip import List
@@ -13,7 +14,7 @@ from router import HandlerError
 
 from commandHandler import CommandHandler, MissingPrefixError
 from context import Context
-from providers.archiver import Archive
+from providers.clientArchive import ClientArchive
 from rateLimiter import RateLimiter
 from settings import Settings
 
@@ -26,31 +27,52 @@ class Core(Client):
         self._settings: Settings = Settings()
         self._limiter: RateLimiter = RateLimiter(self._settings)
         self._handler: CommandHandler = CommandHandler()
-        self._archive: Archive = Archive()
         self._loggers: Dict[int, Logger] = dict()
         super().__init__(intents=Intents.all())
 
     async def on_ready(self):
+        self._archive: ClientArchive = ClientArchive(Path('./archive'), self)
+        await self.__on_ready__()
+
+    async def on_guild_channel_create(self, channel: GuildChannel):
+        print('creating channel in archive....')
+        self._archive[channel.guild.id].add(channel)
+    
+    async def on_guild_channel_delete(self, channel: GuildChannel):
+        print('removing channel in archive....')
+        self._archive[channel.guild.id].remove(channel)
+
+    async def on_message(self, message: Message):
+        await self.__on_message__(message)
+
+    ################################################################################
+    #                                                                              #
+    #                                                                              #
+    #                                                                              #
+    ################################################################################
+
+
+    async def __on_ready__(self):
         try:
-            component_path: Path = self._settings.ux.components
-            self._handler.load(component_path, extension='py', client=self, settings=self._settings)
+            if not self._settings.client.data.components:
+                raise HandlerError('No components directory provided.')
+            self._handler.load(self._settings.client.data.components, extension='py', client=self, settings=self._settings)
             self._handler.addLimiter(self._limiter)
-        except ValueError as error:
-            log.warning(f"Failed to load: {error}")
         except HandlerError as error:
             log.warning(error)
 
         try:
             archive_path: Path = Path('./archive')
-            for guild in self.guilds:
-                self._archive.load(archive_path, guild)
+            #for guild in self.guilds:
+                #self._archive.load(archive_path, guild)
             await self._archive.fetch()
         except Exception:
             raise
 
         log.info("Ready!")
 
-    async def on_message(self, message: Message):
+    async def __on_message__(self, message: Message):
+        
         # if the provided message parameter was not a message
         if not isinstance(message, Message):
             return
@@ -62,7 +84,7 @@ class Core(Client):
         if message.author.id == self.user.id:
             return
         try:
-            prefix: Optional[str] = self._settings.ux.prefix
+            prefix: Optional[str] = self._settings.for_guild(message.guild).ux.prefix
             context: Context = Context(
                 self,
                 message,
@@ -78,14 +100,9 @@ class Core(Client):
         except HandlerError as error:
             log.error(error)
 
-    ################################################################################
-    #                                                                              #
-    #                                                                              #
-    #                                                                              #
-    ################################################################################
 
     def __archive_message__(self, message: Message):
-        self._archive.write(message)
+        self._archive.save(message)
 
     def __log_message__(self, message: Message):
         # get the message author

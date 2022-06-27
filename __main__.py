@@ -7,7 +7,7 @@ import discord
 import router
 
 import core
-import providers.archiver
+import providers.clientArchive
 from core import Core
 
 root: Logger = logging.getLogger()
@@ -35,7 +35,7 @@ logging.addLevelName(logging.FATAL, "FTL")
 logging.getLogger().setLevel(logging.DEBUG)
 logging.getLogger(discord.__name__).setLevel(logging.WARNING)
 logging.getLogger(core.__name__).setLevel(logging.DEBUG)
-logging.getLogger(providers.archiver.__name__).setLevel(logging.DEBUG)
+logging.getLogger(providers.clientArchive.__name__).setLevel(logging.DEBUG)
 logging.getLogger(router.__name__).setLevel(logging.INFO)
 logging.getLogger(router.packaging.__name__).setLevel(logging.INFO)
 logging.getLogger(router.packaging.__name__).setLevel(logging.INFO)
@@ -45,7 +45,7 @@ log: Logger = logging.getLogger(__name__)
 
 try:
     client = Core()
-    token: Optional[str] = client._settings.token.current
+    token: Optional[str] = client._settings.client.token.current
     if not token: raise ValueError('No token was found in the configuration!')
     client.loop.run_until_complete(client.start(token))
 except KeyboardInterrupt:

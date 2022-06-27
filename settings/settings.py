@@ -2,31 +2,28 @@ import logging
 from logging import Logger
 from pathlib import Path
 from typing import cast
+from discord import Guild
 
 from router.configuration import Configuration
-
-from settings.limiting import LimiterSettings
-from settings.token import TokenSettings
-from settings.ux import UXSettings
+from settings.clientSettings import ClientSettings
+from settings.guildSettings import GuildSettings
 
 log: Logger = logging.getLogger(__name__)
 
+class Settings():
 
-class Settings(Configuration):
-    def __init__(self, reference: Path = Path('./config.ini')):
-        super().__init__(reference)
-        self['UX'] = UXSettings('UX', self._parser, self._reference)
-        self['TOKENS'] = TokenSettings('TOKENS', self._parser, self._reference)
-        self['LIMITING'] = LimiterSettings('LIMITING', self._parser, self._reference)
+    def __init__(self, directory: Path = Path('./config/')) -> None:
+        # resolve the provided directory
+        self._directory: Path = directory.resolve()
+        # if the provided directory doesn't exist
+        if not self._directory.exists(): self._directory.mkdir(parents=True, exist_ok=True)
 
-    @property
-    def ux(self) -> UXSettings:
-        return cast(UXSettings, self['UX'])
-
-    @property
-    def token(self) -> TokenSettings:
-        return cast(TokenSettings, self['TOKENS'])
+        # initialize client settings
+        self._client_settings: ClientSettings = ClientSettings(self._directory.joinpath('global.ini'))
 
     @property
-    def limiting(self) -> LimiterSettings:
-        return cast(LimiterSettings, self['LIMITING'])
+    def client(self) -> ClientSettings:
+        return self._client_settings
+
+    def for_guild(self, guild: Guild) -> GuildSettings:
+        return GuildSettings(self._directory, guild)

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import collections
 import logging
 import sqlite3
@@ -10,85 +8,28 @@ from sqlite3 import Connection, Cursor, IntegrityError
 from typing import Iterator, List, Optional, Tuple
 
 import discord
-from discord import Attachment, Message, TextChannel
+from discord import Message, TextChannel
+
+from providers.messageEntry import AttachmentEntry, MessageEntry
 
 log: Logger = logging.getLogger(__name__)
-
-class AttachmentEntry():
-
-    @classmethod
-    def fromAttachment(cls, attachment: Attachment) -> AttachmentEntry:
-        return cls(attachment.id, attachment.url)
-
-    @classmethod
-    def fromRow(cls, row: sqlite3.Row) -> AttachmentEntry:
-        return cls(row['ID'], row['URL'])
-
-    def __init__(self, id: int, url: str) -> None:
-        self._id: int = id
-        self._url: str = url
-
-    @property
-    def id(self) -> int:
-        return self._id
-
-    @property
-    def url(self) -> str:
-        return self._url
-        
-
-class MessageEntry():
-
-    @classmethod
-    def fromMessage(cls, message: Message) -> MessageEntry:
-        return cls(message.id, message.author.id, message.content, message.created_at, message.attachments)
-
-    def __init__(self, messageID: int, authorID: int, content: str, timestamp: datetime, attachments: List[Attachment] = list()) -> None:
-        self._id: int = messageID
-        self._author_id: int = authorID
-        self._content: str = content
-        self._timestamp: datetime = timestamp
-        self._attachments: List[AttachmentEntry] = [AttachmentEntry.fromAttachment(attachment) for attachment in attachments]
-
-    @property
-    def id(self) -> int:
-        return self._id
-
-    @property
-    def author_id(self) -> int:
-        return self._author_id
-
-    @property
-    def content(self) -> str:
-        return self._content
-        
-    @property
-    def timestamp(self) -> datetime:
-        return self._timestamp
-
-    @property
-    def attachments(self) -> List[AttachmentEntry]:
-        return self._attachments
 
 
 class ChannelArchive(collections.abc.MutableMapping):
 
-    def __init__(self, channel: TextChannel, directory: Path) -> None:
+    def __init__(self, directory: Path, channel: TextChannel) -> None:
         # set channel
         self._channel: TextChannel = channel
         # resolve the directory path
-        self._directory: Path = directory.resolve()
-        # get the path of the channel database
-        self._database: Path = self._directory.joinpath(str(self._channel.id) + '.db').resolve()
+        self._directory: Path = directory.resolve().joinpath(str(self._channel.id) + '.db')
         # create the channel database if it doesn't exist
-        if not self._database.exists(): self._database.touch(exist_ok=True)
+        if not self._directory.exists(): self._directory.touch(exist_ok=True)
         
         # connect to the database
-        self._connection: Connection = sqlite3.connect(self._database)
+        self._connection: Connection = sqlite3.connect(self._directory)
         # set the connection's row factory
         self._connection.row_factory = sqlite3.Row
-
-        # create the table
+        # create the tables
         self.__create_messages__()
         self.__create_attachments__()
         
@@ -242,6 +183,7 @@ class ChannelArchive(collections.abc.MutableMapping):
         except IntegrityError:
             raise
 
+
     def __create_messages__(self) -> None:
         # create the database cursor
         self._cursor: Cursor = self._connection.cursor()
@@ -275,6 +217,37 @@ class ChannelArchive(collections.abc.MutableMapping):
         parameters: Tuple = ()
         # execute the query with parameters
         self._cursor.execute(query, parameters)
+
+
+    def save(self, message: Message) -> None:
+        entry = MessageEntry(message.id, message.author.id, message.content, message.created_at, message.attachments)
+        self.__setitem__(message.id, entry)
+
+    async def fetch(self) -> None:
+        try:
+            # annotate message type
+            message: Message
+
+            # for each message in the channel history before the oldest recorded message 
+            async for message in self._channel.history(limit=None, before=self.oldest, oldest_first=False):
+                logging.debug('Writing message %s to %s', message.id, self._directory.name)
+                try:
+                    # write the message
+                    self.save(message)
+                except IntegrityError:
+                    pass
+
+            # for each message in the channel history after the newest recorded message 
+            async for message in self._channel.history(limit=None, after=self.newest, oldest_first=True):
+                logging.debug('Writing message %s to %s', message.id, self._directory.name)
+                try:
+                    # write the message
+                    self.save(message)
+                except IntegrityError:
+                    pass
+        except discord.Forbidden:
+            raise
+
 
     @property
     def oldest(self) -> Optional[datetime]:
@@ -323,60 +296,3 @@ class ChannelArchive(collections.abc.MutableMapping):
             return discord.utils.snowflake_time(id)
         except:
             raise
-
-    async def fetch(self) -> None:
-        try:
-            # annotate message type
-            message: Message
-
-            # for each message in the channel history before the oldest recorded message 
-            async for message in self._channel.history(limit=None, before=self.oldest, oldest_first=False):
-                logging.debug('Writing message %s to %s', message.id, self._database.name)
-                try:
-                    # write the message
-                    self.write(message)
-                except IntegrityError:
-                    pass
-
-            # for each message in the channel history after the newest recorded message 
-            async for message in self._channel.history(limit=None, after=self.newest, oldest_first=True):
-                logging.debug('Writing message %s to %s', message.id, self._database.name)
-                try:
-                    # write the message
-                    self.write(message)
-                except IntegrityError:
-                    pass
-        except discord.Forbidden:
-            raise
-
-    def write(self, message: Message) -> None:
-        entry = MessageEntry(message.id, message.author.id, message.content, message.created_at, message.attachments)
-        self.__setitem__(message.id, entry)
-        return
-        # assemble query
-        query: str = '''
-        INSERT INTO Messages VALUES (
-            ?,
-            ?,
-            ?,
-            ?
-        )
-        '''
-        # assemble query parameters
-        parameters: Tuple = (
-            message.id,
-            message.author.id,
-            message.content,
-            message.created_at
-        
-        )
-        # try to insert and save message values
-        try:
-            # execute the insert statement with parameter injection
-            self._cursor.execute(query, parameters)
-            # save changes
-            self._connection.commit()
-        # catch integrity errors (UNIQUE constraints, etc.)
-        except IntegrityError:
-            raise
-
