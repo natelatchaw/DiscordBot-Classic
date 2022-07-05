@@ -77,7 +77,7 @@ class Metadata(Storable):
 
     def __values__(self) -> Tuple[Any, ...]:
         # create a tuple with the corresponding values
-        value: Tuple[Any, ...] = (self.id, self.user_id, self.video_id, self.url, self.title, self.channel, self.thumbnail)
+        value: Tuple[Any, ...] = (self.id, self.user_id, self.video_id, self.title, self.channel, self.thumbnail, self.url)
         # return the tuple
         return value
 
