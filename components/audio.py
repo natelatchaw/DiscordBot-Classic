@@ -3,15 +3,19 @@ import logging
 from asyncio import Event, Queue, Task, TimeoutError
 from asyncio.events import AbstractEventLoop
 from logging import Logger
+from optparse import Option
 from pathlib import Path
 from shlex import join
+from sqlite3 import Row
 from typing import Any, Dict, List, NoReturn, Optional, Union
 from urllib.request import Request
 
 import discord
+from pandas import DataFrame
+import pandas
 import youtube_dl
 from context import Context
-from discord import (Activity, ClientException, Guild, StageChannel, Streaming,
+from discord import (Activity, ClientException, Guild, Member, StageChannel, Streaming,
                      TextChannel, User, VoiceChannel, VoiceClient, VoiceState)
 from discord.player import AudioSource
 from router.configuration import Section
@@ -152,7 +156,30 @@ class Audio():
                 log.error(error)
                 self._connection.clear()
     
-    
+    async def __download__(self, context: Context, *, query: str, downloader: youtube_dl.YoutubeDL) -> Optional[Metadata]:
+        """
+        Searches for a query on YouTube and downloads the metadata.
+
+        Parameters:
+            - query: A string or URL to download metadata from YouTube
+            - downloader: YoutubeDL downloader instance
+        """
+
+        try:
+            # extract the info from the 
+            data: Dict[str, Any] = downloader.extract_info(query, download=False)
+            # get the entries property, if it exists
+            entries: Optional[List[Any]] = data.get('entries')
+            # if the data contains a list of entries, use the list
+            # otherwise create list from data (single entry)
+            results: List[Dict[str, Any]] = entries if entries else [data]
+            # return the first available result
+            result: Optional[Dict[str, Any]] = results[0]
+            # return a Metadata object if result exists
+            return Metadata.__from_dict__(result, context.message.id, context.message.author.id) if result else None
+        except youtube_dl.utils.DownloadError:
+            raise
+
     async def __queue__(self, context: Context, *, url: Optional[str] = None, search: Optional[str] = None, speed: Optional[str] = None) -> Request:
         """
         Add source media to the media queue.
@@ -162,62 +189,58 @@ class Audio():
             - search: Search terms to query YouTube for a source video.
         """
 
+        # if no target was provided, raise error
         if not url and not search:
             raise ValueError("Invalid or missing URL/search query provided.")
 
-        try:
-            youtube_dl_options: Dict[str, Any] = {
-                'format': 'bestaudio/best',
-                'noplaylist': False,
-                'postprocessors': [
-                    {
-                        'key': 'FFmpegExtractAudio',
-                        'preferredcodec': 'opus',
-                    },
-                ],
-                'logger': AudioLogger(),
-                'progress_hooks': [ ],
-            }
+        # assemble query string depending on input
+        query: str = url if url else f'ytsearch:{search}'
 
-            try: 
-                query: str = url if url else f'ytsearch:{search}'
-                data: Dict[str, Any] = youtube_dl.YoutubeDL(youtube_dl_options).extract_info(query, download=False)
-                # get the entries property, if it exists
-                entries: Optional[List[Any]] = data.get('entries')
-                # if the data contains a list of entries, use the list
-                # otherwise create list from data (single entry)
-                results: List[Dict[str, Any]] = entries if entries else [data]
-            except youtube_dl.utils.DownloadError as downloadError:
-                raise downloadError
+        youtube_dl_options: Dict[str, Any] = {
+            'format': 'bestaudio/best',
+            'noplaylist': False,
+            'postprocessors': [
+                {
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'opus',
+                },
+            ],
+            'logger': AudioLogger(),
+            'progress_hooks': [ ],
+        }
 
-            result: Optional[Dict[str, Any]] = results[0]
-            if not result:
-                raise AudioError(f'No results found for `{query}`')
-            
-            # get multiplier if speed was provided
-            multiplier: Optional[float] = float(speed) if speed else None
-            # assert the multiplier is within supported bounds
-            multiplier: Optional[float] = multiplier if multiplier and multiplier > 0.5 and multiplier < 2.0 else None
-            # create options string if multiplier is available
-            options: Optional[str] = join([r'-filter:a', rf'atempo={multiplier}']) if multiplier else None
+        # initialize downloader
+        downloader: youtube_dl.YoutubeDL = youtube_dl.YoutubeDL(youtube_dl_options)
+        # download the request's metadata
+        metadata: Optional[Metadata] = self.__download__(query, downloader)
+        # if no metadata was provided, raise error
+        if not metadata: raise AudioError(f'No results found for `{query}`')
+        # create the metadata table if needed
+        self._database.create(metadata)
+        # insert the metadata into the table
+        self._database.insert(metadata)
+        
+        # initialize options list
+        options: List[str] = list()
 
-            # create track instance from result data
-            metadata: Metadata = Metadata.__from_dict__(result, context.message.id, context.message.author.id)
-            # create the metadata table if needed
-            self._database.create(metadata)
-            # insert the metadata into the table
-            self._database.insert(metadata)
+        # add the audio filter parameter to the options list
+        options.append(r'-filter:a')
 
-            # create source from metadata url and options
-            source: AudioSource = discord.FFmpegOpusAudio(metadata.url, options=options)
-            # create request from source and metadata
-            request: AudioRequest = AudioRequest(source, metadata)
-            # add the request to the queue
-            await self._playback_queue.put(request)
-            # return the request
-            return request
-        except:
-            raise
+        # get multiplier if speed was provided
+        multiplier: Optional[float] = float(speed) if speed else None
+        # assert the multiplier is within supported bounds
+        multiplier: Optional[float] = multiplier if multiplier and multiplier > 0.5 and multiplier < 2.0 else None
+        # if a multiplier was specified, add it to the options list
+        if multiplier: options.append(rf'atempo={multiplier}')
+
+        # create source from metadata url and options
+        source: AudioSource = discord.FFmpegOpusAudio(metadata.url, options=join(options))
+        # create request from source and metadata
+        request: AudioRequest = AudioRequest(source, metadata)
+        # add the request to the queue
+        await self._playback_queue.put(request)
+        # return the request
+        return request
 
 
     async def set_timeout(self, context: Context, *, length: Optional[str] = None):
@@ -236,7 +259,6 @@ class Audio():
                 await context.message.reply(f'Timeout set to {self.timeout} seconds. Bot will wait for this duration after the queue is empty before leaving the voice channel.')
         except ValueError:
             raise
-
 
     async def connect(self, context: Context):
         """
@@ -260,7 +282,6 @@ class Audio():
         except ClientException as error:
             raise
 
-
     async def disconnect(self, context: Context):
         """
         Disconnects the bot from the joined voice channel.
@@ -280,7 +301,6 @@ class Audio():
             await self._vclient.disconnect(force=True)
         finally:
             self._connection.clear()
-
 
     async def play(self, context: Context, *, url: Optional[str] = None, search: Optional[str] = None, speed: Optional[str] = None):
         """
@@ -337,7 +357,6 @@ class Audio():
         finally:
             pass
 
-
     async def pause(self, context: Context):
         """
         Pauses audio playback.
@@ -346,7 +365,6 @@ class Audio():
             self._vclient.pause()
             return
 
-
     async def skip(self, context: Context):
         """
         Skips the current track.
@@ -354,7 +372,6 @@ class Audio():
         if self._vclient:
             self._vclient.source = AudioSource()
             return
-
     
     async def stop(self, context: Context):
         """
@@ -364,7 +381,6 @@ class Audio():
             self._vclient.stop()
             self.disconnect(context)
             return
-
 
     async def nightcore(self, context: Context, *, url: Optional[str] = None, search: Optional[str] = None, speed: Optional[str] = '1.25'):
         """
@@ -409,7 +425,8 @@ class AudioLogger():
 
 
 class AudioError(Exception):
-    """"""
+    """
+    """
 
     def __init__(self, message: str, exception: Optional[Exception] = None):
         self._message = message
@@ -420,7 +437,8 @@ class AudioError(Exception):
 
 
 class NotConnectedError(AudioError):
-    """"""
+    """
+    """
 
     def __init__(self, exception: Optional[Exception] = None):
         message: str = f'The client is not connected to a compatible voice channel.'
@@ -428,7 +446,8 @@ class NotConnectedError(AudioError):
 
 
 class InvalidChannelError(AudioError):
-    """"""
+    """
+    """
 
     def __init__(self, channel: Optional[discord.abc.GuildChannel], exception: Optional[Exception] = None):
         reference: str = channel.mention if channel else 'unknown'
