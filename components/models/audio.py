@@ -18,6 +18,9 @@ class Metadata(Storable):
         self._thumbnail: str = thumbnail
         self._url: str = url
 
+    def __str__(self) -> str:
+        return f'[{self._video_id}] {self._title} ({self._url})'
+
     @property
     def id(self) -> int:
         return self._id

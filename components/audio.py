@@ -5,6 +5,7 @@ from asyncio.events import AbstractEventLoop
 from logging import Logger
 from optparse import Option
 from pathlib import Path
+import re
 from shlex import join
 from sqlite3 import Row
 from typing import Any, Dict, List, NoReturn, Optional, Union
@@ -33,13 +34,12 @@ class Audio():
     """
 
     @property
-    def timeout(self) -> float:
+    def timeout(self) -> Optional[float]:
         key: str = "timeout"
         value: Optional[str] = None
         try:
             value = self._config[key]
-            if value and isinstance(value, str):
-                return float(value)
+            return float(value) if value and isinstance(value, str) else None                
         except KeyError:
             self._config[key] = ""
             return None
@@ -87,6 +87,7 @@ class Audio():
         """
         # set the playback event
         self._playback_event.set()
+        log.debug(f'Playback event is {"set" if self._playback_event.is_set() else "clear"}')
         # log error if available
         if error: log.error(error)
 
@@ -96,7 +97,7 @@ class Audio():
         This is used internally and should not be called as a command.
         """
         # set the current metadata
-        self._current: Optional[Metadata] = metadata
+        self._current = metadata
         # instantiate activity
         activity: Activity = Streaming(name=metadata.title, url=metadata.url)
         # change the client's presence
@@ -136,8 +137,10 @@ class Audio():
 
                 # clear the playback event
                 self._playback_event.clear()
+                log.debug(f'Playback event is {"set" if self._playback_event.is_set() else "clear"}')
 
                 # play the request
+                print(request.source.__dict__)
                 self._vclient.play(request.source, after=self.__on_complete__)
 
                 # wait for the playback event to be set
@@ -180,7 +183,7 @@ class Audio():
         except youtube_dl.utils.DownloadError:
             raise
 
-    async def __queue__(self, context: Context, *, url: Optional[str] = None, search: Optional[str] = None, speed: Optional[str] = None) -> Request:
+    async def __queue__(self, context: Context, *, url: Optional[str] = None, search: Optional[str] = None, speed: Optional[str] = None) -> AudioRequest:
         """
         Add source media to the media queue.
 
@@ -212,7 +215,7 @@ class Audio():
         # initialize downloader
         downloader: youtube_dl.YoutubeDL = youtube_dl.YoutubeDL(youtube_dl_options)
         # download the request's metadata
-        metadata: Optional[Metadata] = self.__download__(query, downloader)
+        metadata: Optional[Metadata] = await self.__download__(context, query=query, downloader=downloader)
         # if no metadata was provided, raise error
         if not metadata: raise AudioError(f'No results found for `{query}`')
         # create the metadata table if needed
@@ -229,14 +232,16 @@ class Audio():
         # get multiplier if speed was provided
         multiplier: Optional[float] = float(speed) if speed else None
         # assert the multiplier is within supported bounds
-        multiplier: Optional[float] = multiplier if multiplier and multiplier > 0.5 and multiplier < 2.0 else None
+        multiplier = multiplier if multiplier and multiplier > 0.5 and multiplier < 2.0 else None
         # if a multiplier was specified, add it to the options list
         if multiplier: options.append(rf'atempo={multiplier}')
 
+        print('creating audio...')
         # create source from metadata url and options
         source: AudioSource = discord.FFmpegOpusAudio(metadata.url, options=join(options))
         # create request from source and metadata
         request: AudioRequest = AudioRequest(source, metadata)
+
         # add the request to the queue
         await self._playback_queue.put(request)
         # return the request
@@ -317,15 +322,16 @@ class Audio():
         try:
             # connect to the channel
             await self.connect(context)
-        except discord.ClientException:
+        except discord.ClientException as error:
             # TODO:
             # VoiceClient.connect() - You are already connected to a voice channel.
             # VoiceClient.play() - Already playing audio or not connected.
+            log.warn(error)
             pass
 
         try:
             # queue the requested content
-            request: Request = await self.__queue__(context, url=url, search=search, speed=speed)
+            request: AudioRequest = await self.__queue__(context, url=url, search=search, speed=speed)
 
             embed: discord.Embed = discord.Embed()
             embed.set_author(name=context.message.author.display_name, icon_url=context.message.author.avatar_url)
@@ -336,11 +342,11 @@ class Audio():
             embed.color = discord.Colour.from_rgb(r=255, g=0, b=0)
             await context.message.channel.send(embed=embed)
 
-        except discord.ClientException:
+        except discord.ClientException as error:
             # TODO:
             # VoiceClient.connect() - You are already connected to a voice channel.
             # VoiceClient.play() - Already playing audio or not connected.
-            pass
+            raise
         except TypeError:
             # TODO:
             # VoiceClient.play() - Source is not an AudioSource or after is not a callable.
@@ -379,7 +385,7 @@ class Audio():
         """
         if self._vclient:
             self._vclient.stop()
-            self.disconnect(context)
+            await self.disconnect(context)
             return
 
     async def nightcore(self, context: Context, *, url: Optional[str] = None, search: Optional[str] = None, speed: Optional[str] = '1.25'):
