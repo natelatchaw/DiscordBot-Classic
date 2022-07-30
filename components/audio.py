@@ -236,9 +236,10 @@ class Audio():
         # if a multiplier was specified, add it to the options list
         if multiplier: options.append(rf'atempo={multiplier}')
 
-        print('creating audio...')
+        print(join(options))
+
         # create source from metadata url and options
-        source: AudioSource = discord.FFmpegOpusAudio(metadata.url, options=join(options))
+        source: AudioSource = discord.FFmpegOpusAudio(metadata.url)#, options=join(options))
         # create request from source and metadata
         request: AudioRequest = AudioRequest(source, metadata)
 
