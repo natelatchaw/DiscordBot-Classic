@@ -1,5 +1,6 @@
 # audio.py
 youtube-dl
+pandas
 
 # gan.py
 torchvision
