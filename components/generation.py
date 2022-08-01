@@ -8,11 +8,12 @@ from typing import List, Optional, Pattern, Tuple, Union
 import discord
 import markovify
 import nltk
-from components.models.generation import ChannelUser, POSifiedText
 from context import Context
 from discord import ClientUser, Guild, Member, Message, TextChannel, User
 from providers.channelArchive import ChannelArchive
 from settings.settings import Settings
+
+from components.models.generation import ChannelUser, POSifiedText
 
 nltk.download('averaged_perceptron_tagger', quiet=True)
 

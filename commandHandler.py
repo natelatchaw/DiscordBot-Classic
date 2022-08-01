@@ -65,6 +65,11 @@ class CommandHandler(Handler):
             await context.message.channel.trigger_typing()
             # call super to finish processing the message
             await super().process(command_message, args=args)
+        except CommandSyntaxError as error:
+            error.set_prefixes(prefix, self._parameter_prefix)
+            embed: Embed = self.__build_error_message__(error)
+            embed.set_author(name=context.client.user.name, icon_url=str(context.client.user.avatar_url))
+            await message.reply(embed=embed)
         except Exception as error:
             log.error(error)
             log.error(''.join(traceback.format_tb(error.__traceback__)))
@@ -97,8 +102,6 @@ class CommandHandler(Handler):
             message = await message.reply(f'{block_tag}\n{segment}\n{block_tag}')
 
 
-
-
 class MissingPrefixError(HandlerError):
     def __init__(self, exception: Optional[Exception] = None):
         message: str = f'Message did not begin with a prefix.'
@@ -108,3 +111,28 @@ class MessageParseError(HandlerError):
     def __init__(self, exception: Optional[Exception] = None):
         message: str = f'An error occurred while parsing the message: {str(exception) if exception else "No info provided"}'
         super().__init__(message, exception)
+
+class CommandSyntaxError(HandlerError, SyntaxError):
+    def __init__(self, command_name: str, suggested_parameters: List[str], exception: Optional[Exception] = None):
+        self._command_prefix: str = "<command prefix>"
+        self._parameter_prefix: str = "<parameter prefix>"
+
+        self._command_name: str = command_name
+        self._suggested_parameters: List[str] = suggested_parameters
+
+        message: str = 'Could not parse provided parameters.'
+        super().__init__(message, exception)
+
+    def set_prefixes(self, command_prefix: str, parameter_prefix: str) -> None:
+        self._command_prefix = command_prefix
+        self._parameter_prefix = parameter_prefix
+        return self
+
+    def __str__(self) -> str:
+        lines: List[str] = [self._message, 'Did you mean:']
+        for suggested_parameter in self._suggested_parameters:
+            lines.append(f'{self._command_prefix}{self._command_name} {self._parameter_prefix}{suggested_parameter} <value>')
+        message: str = str.join('\n', lines)
+        return message
+
+

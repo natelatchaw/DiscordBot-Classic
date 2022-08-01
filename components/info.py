@@ -38,7 +38,7 @@ class Info:
 
         await context.message.channel.send(embed=embed)
 
-    async def help(self, context: Context, *, package: str = None, component: str = None):
+    async def help(self, context: Context, *, package: Optional[str] = None, component: Optional[str] = None):
         """
         Provides usage data for commands.
 
@@ -47,43 +47,75 @@ class Info:
             - component: specify a component to retrieve help data for
         """
 
+        no_doc: str = "No documentation provided."
+
         embed = discord.Embed()
 
-        if package:
-            try:
-                selected_package: Package = context.packages[package]
-            except KeyError:
-                await context.message.channel.send(f'Could not find a package named **{package}**')
-                return
+        if package and not component:
+            packages: List[Package] = self.__find_packages__(context, package=package)
+            if len(packages) == 0:
+                raise ValueError(f"No packages found matching '{package}'")
+            if len(packages) > 1:
+                raise ValueError(f"Multiple packages found matching'{package}'")
+            selected_package: Package = packages[0]
 
             embed.title = selected_package._reference.name
-            embed.description = selected_package.doc
-            for component in selected_package.values():
-                embed.add_field(name=component.name, value=component.doc, inline=False)
+            embed.description = inspect.cleandoc(selected_package.doc) if selected_package.doc else no_doc
+            for selected_component in selected_package.values():
+                embed.add_field(name=selected_component.name, value=selected_component.doc if selected_component.doc else no_doc, inline=False)
             embed.timestamp = datetime.now(tz=timezone.utc)
         
         elif component:
-            selected_component: Optional[Component] = None
-            for p in context.packages.values():
-                try:
-                    selected_component = p[component]
-                except KeyError:
-                    continue
-            if not selected_component:
-                await context.message.channel.send(f'Could not find a component named **{component}**')
-                return
+            components: List[Component] = self.__find_components__(context, component=component, package=package)
+            if len(components) == 0:
+                raise ValueError(f"No components found matching '{component}'")
+            if len(components) > 1:
+                raise ValueError(f"Multiple components found matching'{component}'")
+            selected_component: Component = components[0]
             
             embed.title = selected_component.name
-            embed.description = selected_component.doc
-            for command in selected_component.values():
-                embed.add_field(name=command.name, value=command.doc, inline=False)
+            embed.description = inspect.cleandoc(selected_component.doc) if selected_component.doc else no_doc
+            for selected_command in selected_component.values():
+                embed.add_field(name=selected_command.name, value=selected_command.doc if selected_command.doc else no_doc, inline=False)
             embed.timestamp = datetime.now(tz=timezone.utc)
 
         else:
             embed.title = "Help"
-            embed.description = inspect.cleandoc(self.__doc__)
-            for package in context.packages.values():
-                embed.add_field(name=package._reference.name, value=package.doc, inline=False)
+            embed.description = inspect.cleandoc(self.__doc__) if self.__doc__ else no_doc
+            for selected_package in context.packages.values():
+                embed.add_field(name=selected_package._reference.name, value=selected_package.doc if selected_package.doc else no_doc, inline=False)
             embed.timestamp = datetime.now(tz=timezone.utc)
 
         await context.message.channel.send(embed=embed)
+
+
+    def __find_packages__(self, context: Context, *, package: str) -> List[Package]:
+        """
+        Returns a list of all packages matching the provided parameters.
+
+        Raises:
+            - KeyError: if no package matching the provided string exists
+        """
+
+        selected_package: Optional[Package] = context.packages.get(package)
+
+        packages: List[Package] = [selected_package] if selected_package else list()
+
+        return packages
+
+
+    def __find_components__(self, context: Context, *, component: str, package: Optional[str] = None) -> List[Component]:
+        """
+        Returns a list of all components matching the provided parameters.
+
+        Raises:
+            - KeyError: if no package matching the provided string exists
+        """
+        
+        selected_package: Optional[Package] = context.packages.get(package) if package else None
+
+        packages: List[Package] = [selected_package] if selected_package else list(context.packages.values())
+
+        components: List[Component] = [package.get(component) for package in packages if package.get(component) is not None]
+
+        return components

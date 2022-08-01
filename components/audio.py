@@ -15,6 +15,7 @@ import discord
 from pandas import DataFrame
 import pandas
 import youtube_dl
+from commandHandler import CommandSyntaxError
 from context import Context
 from discord import (Activity, ClientException, Guild, Member, StageChannel, Streaming,
                      TextChannel, User, VoiceChannel, VoiceClient, VoiceState)
@@ -194,7 +195,8 @@ class Audio():
 
         # if no target was provided, raise error
         if not url and not search:
-            raise ValueError("Invalid or missing URL/search query provided.")
+            raise CommandSyntaxError(self.__queue__.__name__, ['url', 'search'])
+            raise ValueError("No URL or search query was provided. Please specify either the 'search' or 'url' parameter.")
 
         # assemble query string depending on input
         query: str = url if url else f'ytsearch:{search}'
@@ -343,6 +345,9 @@ class Audio():
             embed.color = discord.Colour.from_rgb(r=255, g=0, b=0)
             await context.message.channel.send(embed=embed)
 
+        except CommandSyntaxError as error:
+            error._command_name = self.play.__name__
+            raise error
         except discord.ClientException as error:
             # TODO:
             # VoiceClient.connect() - You are already connected to a voice channel.
