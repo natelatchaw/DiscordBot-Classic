@@ -69,7 +69,7 @@ class Utility():
         Disables the verbose configuration flag.
         """
 
-        context.settings.for_guild(context.message.guild).verbose = False
+        context.settings.for_guild(context.message.guild).ux.verbose = False
         await context.message.reply(f"Verbose mode {'enabled' if context.settings.for_guild(context.message.guild).ux.verbose else 'disabled'}")
 
 
